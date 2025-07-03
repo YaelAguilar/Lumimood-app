@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'pages/welcome_page/welcome_page_widget.dart';
+import 'ui/welcome/view/welcome_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -13,20 +13,20 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Lumimood',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        primarySwatch: Colors.blue, 
         useMaterial3: true,
       ),
-      home: const WelcomePageWidget(),
+      home: const WelcomePage(),
       routes: {
-        '/login': (context) => const LoginPage(),
-        '/register': (context) => const RegisterPage(), 
+        '/login': (context) => const LoginPagePlaceholder(),
+        '/register': (context) => const RegisterPagePlaceholder(), 
       },
     );
   }
 }
 
-class LoginPage extends StatelessWidget {
-  const LoginPage({super.key});
+class LoginPagePlaceholder extends StatelessWidget {
+  const LoginPagePlaceholder({super.key});
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -36,8 +36,8 @@ class LoginPage extends StatelessWidget {
   }
 }
 
-class RegisterPage extends StatelessWidget {
-  const RegisterPage({super.key});
+class RegisterPagePlaceholder extends StatelessWidget {
+  const RegisterPagePlaceholder({super.key});
   @override
   Widget build(BuildContext context) {
     return Scaffold(
