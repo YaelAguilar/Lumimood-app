@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/extensions/animation_extensions.dart';
 import '../../../core/extensions/text_style_extensions.dart';
-import '../../shared_widgets/custom_button.dart';
+import '../../../ui/shared_widgets/custom_button.dart';
 import '../viewmodel/welcome_viewmodel.dart';
 
 class WelcomePage extends StatefulWidget {
@@ -93,9 +93,7 @@ class _WelcomePageState extends State<WelcomePage> with TickerProviderStateMixin
                           child: Padding(
                             padding: const EdgeInsetsDirectional.fromSTEB(8, 0, 8, 16),
                             child: CustomButton(
-                              onPressed: () {
-                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Botón de Registro presionado')));
-                              },
+                              onPressed: () => viewModel.onRegisterTapped(context),
                               text: 'Regístrate',
                               options: ButtonOptions(
                                 width: 230,
@@ -113,9 +111,7 @@ class _WelcomePageState extends State<WelcomePage> with TickerProviderStateMixin
                           child: Padding(
                             padding: const EdgeInsetsDirectional.fromSTEB(8, 0, 8, 16),
                             child: CustomButton(
-                              onPressed: () {
-                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Botón de Iniciar Sesión presionado')));
-                              },
+                              onPressed: () => viewModel.onLoginTapped(context),
                               text: 'Iniciar sesión',
                               options: ButtonOptions(
                                 width: 230,

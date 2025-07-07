@@ -1,17 +1,23 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  static AppTheme of(BuildContext context) => AppTheme();
+  final BuildContext context;
+  AppTheme(this.context);
 
-  Color get secondaryBackground => Colors.grey[50]!;
+  static AppTheme of(BuildContext context) => AppTheme(context);
+
+  Color get secondaryBackground => Theme.of(context).scaffoldBackgroundColor;
   Color get accent4 => Colors.grey[100]!;
   Color get primaryBackground => Colors.white;
-  Color get primaryText => Colors.black;
+  Color get primaryText => const Color(0xFF101518);
   Color get alternate => Colors.grey[300]!;
-  Color get primaryColor => const Color(0xFF63DA5C);
+  Color get primaryColor => Theme.of(context).primaryColor;
 
-  TextStyle get displayLarge => const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.black);
-  TextStyle get displaySmall => const TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: Colors.black);
-  TextStyle get labelMedium => TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.grey[600]);
-  TextStyle get titleSmall => const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.black);
+
+  TextStyle get displayLarge => Theme.of(context).textTheme.displayLarge!;
+  TextStyle get displaySmall => Theme.of(context).textTheme.displaySmall!;
+  TextStyle get headlineMedium => Theme.of(context).textTheme.headlineMedium!;
+  TextStyle get titleSmall => Theme.of(context).textTheme.titleSmall!;
+  TextStyle get bodyMedium => Theme.of(context).textTheme.bodyMedium!;
+  TextStyle get labelMedium => Theme.of(context).textTheme.labelMedium!;
 }
