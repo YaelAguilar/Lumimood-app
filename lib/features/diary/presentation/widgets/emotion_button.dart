@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../model/emotion_model.dart';
+import '../../data/models/emotion_model.dart';
 
 class EmotionButton extends StatelessWidget {
   final Emotion emotion;
