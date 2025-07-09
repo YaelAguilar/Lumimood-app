@@ -17,6 +17,7 @@ class AppTheme {
       secondary: Colors.grey[300]!,
       surface: Colors.white,
       onSurface: primaryText,
+      brightness: Brightness.light,
     ),
     textTheme: TextTheme(
       displayLarge: GoogleFonts.notoSans(fontSize: 32, fontWeight: FontWeight.bold, color: primaryText),
@@ -40,7 +41,7 @@ class AppTheme {
   );
 }
 
-extension TextStyleExtension on TextStyle {
+extension TextStyleExtension on TextStyle? {
   TextStyle override({
     String? fontFamily,
     Color? color,
@@ -50,7 +51,7 @@ extension TextStyleExtension on TextStyle {
     FontStyle? fontStyle,
     double? height,
   }) {
-    return copyWith(
+    return (this ?? const TextStyle()).copyWith(
       fontFamily: fontFamily,
       color: color,
       fontSize: fontSize,

@@ -1,12 +1,17 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../../app/di.dart';
-import '../../../../app/theme.dart';
-import '../../../../common/widgets/custom_button.dart';
+
+import '../../../../../app/di.dart';
+import '../../../../../app/theme.dart';
 import '../bloc/welcome_bloc.dart';
+import '../widgets/widgets.dart';
+
+const double _kBackgroundBlur = 50.0;
 
 class WelcomePage extends StatelessWidget {
   const WelcomePage({super.key});
@@ -25,108 +30,164 @@ class _WelcomeView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return Scaffold(
+      body: Stack(
+        children: [
+          const AnimatedBackground(),
+          BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: _kBackgroundBlur, sigmaY: _kBackgroundBlur),
+            child: const SizedBox.shrink(),
+          ),
+          const _Content(),
+        ],
+      ),
+    );
+  }
+}
+
+class _Content extends StatefulWidget {
+  const _Content();
+
+  @override
+  State<_Content> createState() => _ContentState();
+}
+
+class _ContentState extends State<_Content> {
+  bool _isLoading = false;
+  WelcomeEvent? _triggeredEvent;
+  double _buttonScale = 1.0;
+
+  void _initiateNavigation(WelcomeEvent event) {
+    if (_isLoading) return;
+
+    setState(() {
+      _isLoading = true;
+      _triggeredEvent = event;
+    });
+
+    HapticFeedback.lightImpact();
+    context.read<WelcomeBloc>().add(event);
+    
+  }
+  
+  Future<void> _navigateAfterAnimation() async {
+    if (!mounted || _triggeredEvent == null) return;
+
+    if (_triggeredEvent is LoginButtonPressed) {
+      await context.pushNamed('login');
+    } else if (_triggeredEvent is RegisterButtonPressed) {
+      await context.pushNamed('register');
+    }
+
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+        _triggeredEvent = null;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
 
-    return BlocListener<WelcomeBloc, WelcomeState>(
-      listener: (context, state) {
-        if (state is WelcomeNavigateToRegister) {
-          context.pushNamed('register');
-        } else if (state is WelcomeNavigateToLogin) {
-          context.pushNamed('login');
-        }
-      },
-      child: Scaffold(
-        body: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24.0),
+        child: Column(
           children: [
-            Expanded(
+            const Spacer(flex: 2),
+            Hero(
+              tag: 'logo_hero',
               child: Container(
-                width: double.infinity,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Color(0xFF39E2EF), Color(0xFF63FF59), Color(0xFF60EE9E)],
-                    stops: [0, 0.5, 1],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface.withAlpha(220),
+                  shape: BoxShape.circle,
+                  boxShadow: [ BoxShadow(color: Colors.black.withAlpha(26), blurRadius: 20, spreadRadius: 5) ]
                 ),
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Colors.transparent, theme.scaffoldBackgroundColor],
-                      stops: const [0, 1],
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                    ),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.surface.withAlpha(204),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Align(
-                          alignment: Alignment.center,
-                          child: Text('L', style: GoogleFonts.notoSans(textStyle: textTheme.displayLarge, color: AppTheme.primaryColor)),
-                        ),
-                      ).animate().fade(duration: 300.ms, delay: 300.ms).scale(begin: const Offset(0.6, 0.6), curve: Curves.bounceOut),
-                      Padding(
-                        padding: const EdgeInsets.only(top: 44),
-                        child: Text('Bienvenido', style: GoogleFonts.interTight(textStyle: textTheme.displaySmall)),
-                      ).animate().fade(duration: 400.ms, delay: 350.ms).moveY(begin: 30, end: 0, curve: Curves.easeInOut),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(44, 8, 44, 0),
-                        child: Text(
-                          'Gracias por unirte a Lumimood\nAccede o crea tu cuenta, y empieza con este viaje',
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.inter(textStyle: textTheme.labelMedium),
-                        ),
-                      ).animate().fade(duration: 400.ms, delay: 400.ms).moveY(begin: 30, end: 0, curve: Curves.easeInOut),
-                    ],
-                  ),
-                ),
-              ).animate().fade(duration: 400.ms).scale(begin: const Offset(3.0, 3.0)),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 44),
-              child: Row(
+                child: Center(child: Text('L', style: GoogleFonts.notoSans(textStyle: textTheme.displayLarge, color: AppTheme.primaryColor))),
+              ),
+            )
+            .animate(onComplete: (controller) => controller.repeat(reverse: true))
+            .scale(duration: 2500.ms, begin: const Offset(1, 1), end: const Offset(1.05, 1.05), curve: Curves.easeInOut)
+            .animate()
+            .fadeIn(delay: 300.ms, duration: 500.ms)
+            .scale(begin: const Offset(0.8, 0.8), curve: Curves.elasticOut),
+            
+            const SizedBox(height: 44),
+            
+            AnimatedOpacity(
+              opacity: _isLoading ? 0.0 : 1.0,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+              onEnd: () {
+                if (_isLoading) {
+                  _navigateAfterAnimation();
+                }
+              },
+              child: Column(
                 children: [
-                  Expanded(
-                    child: CustomButton(
-                      onPressed: () => context.read<WelcomeBloc>().add(RegisterButtonPressed()),
-                      text: 'Regístrate',
-                      options: ButtonOptions(
-                        height: 52,
-                        color: theme.colorScheme.surface,
-                        textStyle: GoogleFonts.interTight(textStyle: textTheme.titleSmall, color: AppTheme.primaryText),
-                        elevation: 3,
-                        borderSide: BorderSide(color: AppTheme.alternate, width: 1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: CustomButton(
-                      onPressed: () => context.read<WelcomeBloc>().add(LoginButtonPressed()),
-                      text: 'Iniciar sesión',
-                      options: ButtonOptions(
-                        height: 52,
-                        color: AppTheme.primaryColor,
-                        textStyle: GoogleFonts.interTight(textStyle: textTheme.titleSmall, color: Colors.white),
-                        elevation: 3,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                  Text('Bienvenido a Lumimood', style: textTheme.displaySmall),
+                  const SizedBox(height: 12),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Text(
+                      'Tu viaje hacia el bienestar emocional comienza aquí. Accede o crea tu cuenta.',
+                      textAlign: TextAlign.center,
+                      style: textTheme.labelMedium.override(color: AppTheme.primaryText.withAlpha(179)),
                     ),
                   ),
                 ],
-              ).animate().fade(duration: 600.ms, delay: 300.ms).scale(begin: const Offset(0.6, 0.6), curve: Curves.bounceOut),
+              ).animate(delay: 400.ms).fadeIn().moveY(begin: 20, curve: Curves.easeOut),
             ),
+            
+            const Spacer(flex: 3),
+
+            GestureDetector(
+              onTapDown: (_) => setState(() => _buttonScale = 0.95),
+              onTapUp: (_) {
+                setState(() => _buttonScale = 1.0);
+                _initiateNavigation(LoginButtonPressed());
+              },
+              onTapCancel: () => setState(() => _buttonScale = 1.0),
+              child: AnimatedScale(
+                scale: _buttonScale,
+                duration: const Duration(milliseconds: 150),
+                curve: Curves.easeOut,
+                child: ElevatedButton(
+                  onPressed: null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryColor,
+                    minimumSize: const Size(double.infinity, 52),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 4,
+                    // Asegurarse que el color no cambie al estar deshabilitado
+                    disabledBackgroundColor: AppTheme.primaryColor,
+                  ),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    child: _isLoading && _triggeredEvent is LoginButtonPressed
+                        ? const SizedBox(key: ValueKey('loader'), width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
+                        : Text('Iniciar sesión', key: const ValueKey('text'), style: textTheme.titleSmall.override(color: Colors.white)),
+                  ),
+                ),
+              ),
+            )
+            .animate()
+            .slideY(begin: 1, duration: 600.ms, delay: 300.ms, curve: Curves.easeOutCubic)
+            .fadeIn(),
+
+            const SizedBox(height: 16),
+            if (!_isLoading)
+              TextButton(
+                onPressed: () => _initiateNavigation(RegisterButtonPressed()),
+                child: Text('Crear una cuenta nueva', style: textTheme.bodyMedium.override(fontWeight: FontWeight.w600, color: AppTheme.primaryText.withAlpha(220))),
+              ).animate().fadeIn(delay: 800.ms),
+
+            const SizedBox(height: 44),
           ],
         ),
       ),
