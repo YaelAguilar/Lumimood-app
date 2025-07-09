@@ -1,14 +1,15 @@
+import 'dart:ui';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../app/di.dart';
 import '../../../../app/theme.dart';
 import '../../../../common/widgets/custom_button.dart';
+import '../../../welcome/presentation/widgets/animated_background.dart';
 import '../bloc/auth_bloc.dart';
 
 class LoginPage extends StatelessWidget {
@@ -45,28 +46,23 @@ class _LoginView extends StatelessWidget {
       child: GestureDetector(
         onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
         child: Scaffold(
-          body: SingleChildScrollView(
-            child: Column(
-              children: [
-                const _Header(),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                  child: Column(
-                    children: [
-                      const _EmailInputField(),
-                      const SizedBox(height: 16),
-                      const _PasswordInputField(),
-                      const SizedBox(height: 16),
-                      const _LoginButtons(),
-                      const SizedBox(height: 24),
-                      const _SocialLogin(),
-                      const SizedBox(height: 24),
-                      const _RegisterLink(),
-                    ],
-                  ).animate().fade(delay: 200.ms, duration: 400.ms).moveY(begin: 60),
+          body: Stack(
+            children: [
+              const AnimatedBackground(),
+              BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+                child: Container(
+                  color: Colors.black.withAlpha(26),
+                  child: Align(
+                    alignment: Alignment.center,
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(16.0),
+                      child: _LoginFormCard(),
+                    ),
+                  ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -74,56 +70,63 @@ class _LoginView extends StatelessWidget {
   }
 }
 
-class _Header extends StatelessWidget {
-  const _Header();
-
+class _LoginFormCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+
     return Container(
       width: double.infinity,
-      height: 300,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF39E2EF), Color(0xFF63DA5C), Color(0xFF60EEB4)],
-          stops: [0, 0.5, 1],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+      constraints: const BoxConstraints(maxWidth: 570),
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor.withAlpha(217),
+        boxShadow: const [BoxShadow(blurRadius: 4, color: Color(0x33000000), offset: Offset(0, 2))],
+        borderRadius: BorderRadius.circular(16),
       ),
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.transparent, Theme.of(context).scaffoldBackgroundColor],
-            stops: const [0, 1],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface.withAlpha(204),
-                borderRadius: BorderRadius.circular(16),
+            Hero(
+              tag: 'logo_hero',
+              child: Container(
+                width: 80,
+                height: 80,
+                decoration: const BoxDecoration(
+                  color: AppTheme.alternate,
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text('L', style: GoogleFonts.notoSans(fontSize: 40, fontWeight: FontWeight.bold, color: AppTheme.primaryColor)),
+                ),
               ),
-              child: const Icon(Icons.animation, color: AppTheme.primaryColor, size: 44),
-            ).animate().fade(duration: 300.ms).scale(begin: const Offset(0.6, 0.6), curve: Curves.bounceOut),
+            ),
             Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: Text('Inicia sesión', style: GoogleFonts.interTight(textStyle: textTheme.headlineSmall)),
-            ).animate().fade(delay: 100.ms, duration: 400.ms).moveY(begin: 30),
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text('Introduce tus datos para iniciar sesión', style: GoogleFonts.inter(textStyle: textTheme.labelMedium)),
-            ).animate().fade(delay: 150.ms, duration: 400.ms).moveY(begin: 30),
+              padding: const EdgeInsets.only(top: 24, bottom: 8),
+              child: Text('Bienvenido de nuevo', textAlign: TextAlign.center, style: GoogleFonts.interTight(textStyle: textTheme.displaySmall)),
+            ),
+            Text('Ingresa tus credenciales para continuar', textAlign: TextAlign.center, style: textTheme.labelLarge),
+            const SizedBox(height: 24),
+            const _EmailInputField(),
+            const SizedBox(height: 16),
+            const _PasswordInputField(),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: () => context.pushNamed('forgot_password'),
+                child: Text('¿Olvidaste tu contraseña?', style: textTheme.bodyMedium?.override(color: AppTheme.primaryText.withAlpha(179))),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const _LoginButton(),
+            const SizedBox(height: 24),
+            const _RegisterLink(),
           ],
         ),
       ),
-    );
+    ).animate().fade(duration: 400.ms).moveY(begin: 40);
   }
 }
 
@@ -136,7 +139,7 @@ class _EmailInputField extends StatelessWidget {
       onChanged: (email) => context.read<AuthBloc>().add(AuthEmailChanged(email)),
       keyboardType: TextInputType.emailAddress,
       autofillHints: const [AutofillHints.email],
-      decoration: const InputDecoration(labelText: 'Correo', contentPadding: EdgeInsets.all(24)),
+      decoration: const InputDecoration(labelText: 'Correo'),
     );
   }
 }
@@ -155,7 +158,6 @@ class _PasswordInputField extends StatelessWidget {
           autofillHints: const [AutofillHints.password],
           decoration: InputDecoration(
             labelText: 'Contraseña',
-            contentPadding: const EdgeInsets.all(24),
             suffixIcon: IconButton(
               icon: Icon(
                 state.isPasswordVisible ? Icons.visibility_outlined : Icons.visibility_off_outlined,
@@ -170,8 +172,8 @@ class _PasswordInputField extends StatelessWidget {
   }
 }
 
-class _LoginButtons extends StatelessWidget {
-  const _LoginButtons();
+class _LoginButton extends StatelessWidget {
+  const _LoginButton();
 
   @override
   Widget build(BuildContext context) {
@@ -179,58 +181,21 @@ class _LoginButtons extends StatelessWidget {
       buildWhen: (p, c) => p.status != c.status,
       builder: (context, state) {
         final textTheme = Theme.of(context).textTheme;
-        return Column(
-          children: [
-            if (state.status == FormStatus.loading)
-              const SizedBox(height: 52, child: Center(child: CircularProgressIndicator()))
-            else
-              CustomButton(
+        return state.status == FormStatus.loading
+            ? const SizedBox(height: 52, child: Center(child: CircularProgressIndicator()))
+            : CustomButton(
                 onPressed: () => context.read<AuthBloc>().add(AuthLoginWithEmailAndPasswordPressed()),
                 text: 'Iniciar sesión',
                 options: ButtonOptions(
-                  width: 230,
+                  width: double.infinity,
                   height: 52,
                   color: AppTheme.primaryColor,
                   textStyle: GoogleFonts.interTight(textStyle: textTheme.titleSmall, color: Colors.white),
                   elevation: 3,
                   borderRadius: BorderRadius.circular(12),
                 ),
-              ),
-            TextButton(
-              onPressed: () => context.pushNamed('forgot_password'),
-              child: Text('Olvidé mi contraseña', style: GoogleFonts.inter(textStyle: textTheme.bodyMedium)),
-            ),
-          ],
-        );
+              );
       },
-    );
-  }
-}
-
-class _SocialLogin extends StatelessWidget {
-  const _SocialLogin();
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    return Column(
-      children: [
-        Text('O inicia sesión con', textAlign: TextAlign.center, style: GoogleFonts.inter(textStyle: textTheme.labelMedium)),
-        const SizedBox(height: 16),
-        CustomButton(
-          onPressed: () => context.read<AuthBloc>().add(AuthLoginWithGooglePressed()),
-          text: 'Continuar con Google',
-          icon: const FaIcon(FontAwesomeIcons.google, size: 20),
-          options: ButtonOptions(
-            width: 230,
-            height: 44,
-            color: Theme.of(context).scaffoldBackgroundColor,
-            textStyle: GoogleFonts.inter(textStyle: textTheme.bodyMedium, fontWeight: FontWeight.bold),
-            borderSide: BorderSide(color: AppTheme.alternate, width: 2),
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      ],
     );
   }
 }
@@ -240,20 +205,18 @@ class _RegisterLink extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.center,
-      child: RichText(
-        text: TextSpan(
-          style: GoogleFonts.inter(textStyle: Theme.of(context).textTheme.bodyMedium),
-          children: [
-            const TextSpan(text: '¿Aún no tienes una cuenta? '),
-            TextSpan(
-              text: ' Regístrate',
-              style: const TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold),
-              recognizer: TapGestureRecognizer()..onTap = () => context.pushNamed('register'),
-            ),
-          ],
-        ),
+    return RichText(
+      textAlign: TextAlign.center,
+      text: TextSpan(
+        style: GoogleFonts.inter(textStyle: Theme.of(context).textTheme.bodyMedium),
+        children: [
+          const TextSpan(text: '¿Aún no tienes una cuenta? '),
+          TextSpan(
+            text: 'Regístrate',
+            style: const TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold),
+            recognizer: TapGestureRecognizer()..onTap = () => context.pushNamed('register'),
+          ),
+        ],
       ),
     );
   }

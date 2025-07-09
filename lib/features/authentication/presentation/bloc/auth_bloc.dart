@@ -10,7 +10,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthEmailChanged>((event, emit) => emit(state.copyWith(email: event.email)));
     on<AuthPasswordChanged>((event, emit) => emit(state.copyWith(password: event.password)));
     on<AuthPasswordVisibilityToggled>((event, emit) => emit(state.copyWith(isPasswordVisible: !state.isPasswordVisible)));
-    on<AuthLoginWithGooglePressed>(_onLoginWithGoogle);
     on<AuthLoginWithEmailAndPasswordPressed>(_onLoginWithEmail);
     
     on<AuthForgotPasswordRequested>(_onForgotPasswordRequested);
@@ -67,10 +66,4 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(state.copyWith(status: FormStatus.success));
   }
 
-  Future<void> _onLoginWithGoogle(AuthLoginWithGooglePressed event, Emitter<AuthState> emit) async {
-    emit(state.copyWith(status: FormStatus.loading, errorMessage: null));
-    log('Attempting login with Google...');
-    await Future.delayed(const Duration(seconds: 2));
-    emit(state.copyWith(status: FormStatus.success));
-  }
 }

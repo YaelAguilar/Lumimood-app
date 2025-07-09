@@ -14,8 +14,6 @@ final class AuthPasswordChanged extends AuthEvent {
 
 final class AuthPasswordVisibilityToggled extends AuthEvent {}
 
-final class AuthLoginWithGooglePressed extends AuthEvent {}
-
 final class AuthLoginWithEmailAndPasswordPressed extends AuthEvent {}
 
 final class AuthForgotPasswordRequested extends AuthEvent {}
