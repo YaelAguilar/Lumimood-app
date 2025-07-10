@@ -1,4 +1,6 @@
 import 'package:get_it/get_it.dart';
+
+// Authentication Imports
 import '../features/authentication/data/datasources/auth_remote_datasource.dart';
 import '../features/authentication/data/repositories/auth_repository_impl.dart';
 import '../features/authentication/domain/repositories/auth_repository.dart';
@@ -6,6 +8,8 @@ import '../features/authentication/domain/usecases/forgot_password.dart';
 import '../features/authentication/domain/usecases/login_user.dart';
 import '../features/authentication/domain/usecases/register_user.dart';
 import '../features/authentication/presentation/bloc/auth_bloc.dart';
+
+// Diary Imports
 import '../features/diary/data/datasources/diary_local_datasource.dart';
 import '../features/diary/data/repositories/diary_repository_impl.dart';
 import '../features/diary/domain/repositories/diary_repository.dart';
@@ -13,12 +17,21 @@ import '../features/diary/domain/usecases/get_emotions.dart';
 import '../features/diary/domain/usecases/save_diary_entry.dart';
 import '../features/diary/presentation/bloc/diary_bloc.dart';
 
+// Notes Imports
+import '../features/notes/data/datasources/notes_local_datasource.dart';
+import '../features/notes/data/repositories/notes_repository_impl.dart';
+import '../features/notes/domain/repositories/notes_repository.dart';
+import '../features/notes/domain/usecases/add_note.dart';
+import '../features/notes/domain/usecases/get_notes.dart';
+import '../features/notes/presentation/bloc/notes_bloc.dart';
+
 final getIt = GetIt.instance;
 
 Future<void> init() async {
   // Features
   _initAuth();
   _initDiary();
+  _initNotes();
 }
 
 void _initAuth() {
@@ -68,5 +81,29 @@ void _initDiary() {
   // Data Sources
   getIt.registerLazySingleton<DiaryLocalDataSource>(
     () => DiaryLocalDataSourceImpl(),
+  );
+}
+
+void _initNotes() {
+  // BLoC
+  getIt.registerFactory(
+    () => NotesBloc(
+      getNotes: getIt(),
+      addNote: getIt(),
+    ),
+  );
+
+  // Use Cases
+  getIt.registerLazySingleton(() => GetNotes(getIt()));
+  getIt.registerLazySingleton(() => AddNote(getIt()));
+
+  // Repository
+  getIt.registerLazySingleton<NotesRepository>(
+    () => NotesRepositoryImpl(localDataSource: getIt()),
+  );
+
+  // Data Sources
+  getIt.registerLazySingleton<NotesLocalDataSource>(
+    () => NotesLocalDataSourceImpl(),
   );
 }
