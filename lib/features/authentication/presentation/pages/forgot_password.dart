@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/injection_container.dart';
 import '../../../../core/presentation/theme.dart';
+import '../../../welcome/presentation/widgets/animated_background.dart';
 import '../bloc/auth_bloc.dart';
 
 class ForgotPasswordPage extends StatelessWidget {
@@ -35,16 +36,12 @@ class _ForgotPasswordView extends StatelessWidget {
                   children: [
                     const Icon(Icons.error_outline, color: Colors.white, size: 20),
                     const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(state.errorMessage ?? 'Ocurrió un error'),
-                    ),
+                    Expanded(child: Text(state.errorMessage ?? 'Ocurrió un error')),
                   ],
                 ),
-                backgroundColor: Colors.red[600],
+                backgroundColor: Colors.red.shade600,
                 behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 margin: const EdgeInsets.all(16),
               ),
             );
@@ -58,73 +55,31 @@ class _ForgotPasswordView extends StatelessWidget {
                   children: [
                     Icon(Icons.check_circle, color: Colors.white, size: 20),
                     SizedBox(width: 12),
-                    Expanded(
-                      child: Text('Se ha enviado un enlace de recuperación a tu correo.'),
-                    ),
+                    Expanded(child: Text('Se ha enviado un enlace de recuperación a tu correo.')),
                   ],
                 ),
                 backgroundColor: AppTheme.primaryColor,
                 behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 margin: const EdgeInsets.all(16),
               ),
             );
-          context.pop();
+          if (context.canPop()) {
+            context.pop();
+          }
         }
       },
       child: Scaffold(
-        body: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFFE0FBFD), Color(0xFFC4F2C2)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+        body: Stack(
+          children: [
+            const AnimatedBackground(),
+            Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: _ForgotPasswordCard(),
+              ),
             ),
-          ),
-          child: SafeArea(
-            child: CustomScrollView(
-              slivers: [
-                SliverAppBar(
-                  backgroundColor: Colors.transparent,
-                  elevation: 0,
-                  leading: Container(
-                    margin: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withAlpha(179),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white.withAlpha(102)),
-                    ),
-                    child: IconButton(
-                      icon: Icon(Icons.arrow_back_rounded, color: AppTheme.primaryText),
-                      onPressed: () {
-                        if (context.canPop()) {
-                          context.pop();
-                        } else {
-                          context.goNamed('welcome');
-                        }
-                      },
-                    ),
-                  ),
-                ),
-                
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      children: [
-                        const Spacer(),
-                        _ForgotPasswordCard(),
-                        const Spacer(),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          ],
         ),
       ),
     );
@@ -145,9 +100,9 @@ class _ForgotPasswordCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(13),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            color: Colors.black.withAlpha(20),
+            blurRadius: 30,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
@@ -161,15 +116,9 @@ class _ForgotPasswordCard extends StatelessWidget {
               color: AppTheme.primaryColor.withAlpha(26),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
-              Icons.lock_reset,
-              size: 40,
-              color: AppTheme.primaryColor,
-            ),
+            child: const Icon(Icons.lock_reset, size: 40, color: AppTheme.primaryColor),
           ),
-          
           const SizedBox(height: 24),
-          
           Text(
             'Recuperar contraseña',
             textAlign: TextAlign.center,
@@ -180,104 +129,45 @@ class _ForgotPasswordCard extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            'Ingresa el correo asociado a tu cuenta y te enviaremos un enlace para restablecer tu contraseña.',
+            'Ingresa el correo asociado a tu cuenta y te enviaremos las instrucciones.',
             textAlign: TextAlign.center,
             style: textTheme.bodyLarge?.copyWith(
               color: AppTheme.primaryText.withAlpha(179),
               height: 1.5,
             ),
           ),
-          
           const SizedBox(height: 32),
-          
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.grey[50],
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey[200]!),
+          TextFormField(
+            onChanged: (email) => context.read<AuthBloc>().add(AuthEmailChanged(email)),
+            decoration: InputDecoration(
+              prefixIcon: const Icon(Icons.email_outlined, color: AppTheme.primaryColor),
+              hintText: 'Correo electrónico',
             ),
-            child: TextFormField(
-              onChanged: (email) => context.read<AuthBloc>().add(AuthEmailChanged(email)),
-              decoration: const InputDecoration(
-                labelText: 'Correo electrónico',
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.all(16),
-                prefixIcon: Icon(
-                  Icons.email_outlined,
-                  color: AppTheme.primaryColor,
-                ),
-              ),
-              keyboardType: TextInputType.emailAddress,
-            ),
+            keyboardType: TextInputType.emailAddress,
           ),
-          
           const SizedBox(height: 32),
-          
           BlocBuilder<AuthBloc, AuthState>(
             builder: (context, state) {
-              return Container(
-                width: double.infinity,
-                height: 56,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppTheme.primaryColor,
-                      AppTheme.primaryColor.withAlpha(204),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppTheme.primaryColor.withAlpha(51),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+              return ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryColor,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(double.infinity, 56),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 3,
+                  shadowColor: AppTheme.primaryColor.withAlpha(100),
                 ),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(16),
-                    onTap: state.status == FormStatus.loading 
-                        ? null 
-                        : () => context.read<AuthBloc>().add(AuthForgotPasswordRequested()),
-                    child: Center(
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 300),
-                        child: state.status == FormStatus.loading
-                            ? const SizedBox(
-                                key: ValueKey('loader'),
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.5,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : Row(
-                                key: const ValueKey('text'),
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.send, color: Colors.white, size: 20),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Enviar enlace',
-                                    style: textTheme.titleMedium?.copyWith(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                      ),
-                    ),
-                  ),
-                ),
+                onPressed: state.status == FormStatus.loading 
+                  ? null 
+                  : () => context.read<AuthBloc>().add(AuthForgotPasswordRequested()),
+                child: state.status == FormStatus.loading
+                  ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
+                  : Text('Enviar enlace', style: textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
               );
             },
           ),
         ],
       ),
-    ).animate().fadeIn(delay: 200.ms, duration: 600.ms).slideY(begin: 0.3);
+    ).animate().fadeIn(delay: 200.ms, duration: 600.ms).slideY(begin: 0.1);
   }
 }
