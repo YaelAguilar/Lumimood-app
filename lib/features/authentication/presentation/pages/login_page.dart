@@ -1,15 +1,11 @@
-import 'dart:ui';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-
-import '../../../../app/di.dart';
-import '../../../../app/theme.dart';
-import '../../../../common/widgets/custom_button.dart';
-import '../../../welcome/presentation/widgets/animated_background.dart';
+import '../../../../core/injection_container.dart';
+import '../../../../core/presentation/theme.dart';
 import '../bloc/auth_bloc.dart';
 
 class LoginPage extends StatelessWidget {
@@ -34,10 +30,25 @@ class _LoginView extends StatelessWidget {
         if (state.status == FormStatus.error) {
           ScaffoldMessenger.of(context)
             ..hideCurrentSnackBar()
-            ..showSnackBar(SnackBar(
-              content: Text(state.errorMessage ?? 'Ocurrió un error inesperado.'),
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ));
+            ..showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    const Icon(Icons.error_outline, color: Colors.white, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(state.errorMessage ?? 'Ocurrió un error inesperado.'),
+                    ),
+                  ],
+                ),
+                backgroundColor: Colors.red[600],
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                margin: const EdgeInsets.all(16),
+              ),
+            );
         }
         if (state.status == FormStatus.success) {
           context.goNamed('diary');
@@ -46,178 +57,308 @@ class _LoginView extends StatelessWidget {
       child: GestureDetector(
         onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
         child: Scaffold(
-          body: Stack(
-            children: [
-              const AnimatedBackground(),
-              BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
-                child: Container(
-                  color: Colors.black.withAlpha(26),
-                  child: Align(
-                    alignment: Alignment.center,
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(16.0),
-                      child: _LoginFormCard(),
+          body: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFFE0FBFD), Color(0xFFC4F2C2)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: SafeArea(
+              child: CustomScrollView(
+                slivers: [
+                  SliverAppBar(
+                    backgroundColor: Colors.transparent,
+                    elevation: 0,
+                    leading: Container(
+                      margin: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withAlpha(179),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white.withAlpha(102)),
+                      ),
+                      child: IconButton(
+                        icon: Icon(Icons.arrow_back_rounded, color: AppTheme.primaryText),
+                        onPressed: () => context.pop(),
+                      ),
+                    ),
+                  ),
+                  
+                  // Contenido principal
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Column(
+                        children: [
+                          const Spacer(),
+                          _LoginCard(),
+                          const Spacer(),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LoginCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    
+    return Container(
+      width: double.infinity,
+      constraints: const BoxConstraints(maxWidth: 400),
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(13),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Logo
+          Hero(
+            tag: 'logo_hero',
+            child: Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: AppTheme.primaryColor.withAlpha(26),
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Text(
+                  'L',
+                  style: GoogleFonts.notoSans(
+                    fontSize: 40,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primaryColor,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          
+          const SizedBox(height: 24),
+          
+          Text(
+            'Bienvenido de nuevo',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.interTight(
+              textStyle: textTheme.headlineMedium,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Ingresa tus credenciales para continuar',
+            textAlign: TextAlign.center,
+            style: textTheme.bodyLarge?.copyWith(
+              color: AppTheme.primaryText.withAlpha(179),
+            ),
+          ),
+          
+          const SizedBox(height: 32),
+          
+          const _LoginForm(),
+        ],
+      ),
+    ).animate().fadeIn(delay: 200.ms, duration: 600.ms).slideY(begin: 0.3);
+  }
+}
+
+class _LoginForm extends StatelessWidget {
+  const _LoginForm();
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    
+    return Column(
+      children: [
+        // Campo de email
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.grey[50],
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey[200]!),
+          ),
+          child: TextFormField(
+            onChanged: (email) => context.read<AuthBloc>().add(AuthEmailChanged(email)),
+            keyboardType: TextInputType.emailAddress,
+            autofillHints: const [AutofillHints.email],
+            decoration: InputDecoration(
+              labelText: 'Correo electrónico',
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.all(16),
+              prefixIcon: Icon(
+                Icons.email_outlined,
+                color: AppTheme.primaryColor,
+              ),
+            ),
+          ),
+        ),
+        
+        const SizedBox(height: 16),
+        
+        // Campo de contraseña
+        BlocBuilder<AuthBloc, AuthState>(
+          buildWhen: (previous, current) => previous.isPasswordVisible != current.isPasswordVisible,
+          builder: (context, state) {
+            return Container(
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey[200]!),
+              ),
+              child: TextFormField(
+                onChanged: (password) => context.read<AuthBloc>().add(AuthPasswordChanged(password)),
+                obscureText: !state.isPasswordVisible,
+                autofillHints: const [AutofillHints.password],
+                decoration: InputDecoration(
+                  labelText: 'Contraseña',
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.all(16),
+                  prefixIcon: Icon(
+                    Icons.lock_outline,
+                    color: AppTheme.primaryColor,
+                  ),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      state.isPasswordVisible ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                      color: Colors.grey[600],
+                    ),
+                    onPressed: () => context.read<AuthBloc>().add(AuthPasswordVisibilityToggled()),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+        
+        const SizedBox(height: 8),
+        
+        // Enlace de contraseña olvidada
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(
+            onPressed: () => context.pushNamed('forgot_password'),
+            child: Text(
+              '¿Olvidaste tu contraseña?',
+              style: textTheme.bodyMedium?.copyWith(
+                color: AppTheme.primaryColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
+        
+        const SizedBox(height: 24),
+        
+        // Botón de login
+        BlocBuilder<AuthBloc, AuthState>(
+          buildWhen: (p, c) => p.status != c.status,
+          builder: (context, state) {
+            return Container(
+              width: double.infinity,
+              height: 56,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    AppTheme.primaryColor,
+                    AppTheme.primaryColor.withAlpha(204),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primaryColor.withAlpha(51),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: state.status == FormStatus.loading 
+                      ? null 
+                      : () => context.read<AuthBloc>().add(AuthLoginWithEmailAndPasswordPressed()),
+                  child: Center(
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      child: state.status == FormStatus.loading
+                          ? const SizedBox(
+                              key: ValueKey('loader'),
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Row(
+                              key: const ValueKey('text'),
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.login, color: Colors.white, size: 20),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Iniciar sesión',
+                                  style: textTheme.titleMedium?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
                     ),
                   ),
                 ),
               ),
+            );
+          },
+        ),
+        
+        const SizedBox(height: 24),
+        
+        // Enlace de registro
+        RichText(
+          textAlign: TextAlign.center,
+          text: TextSpan(
+            style: GoogleFonts.inter(textStyle: textTheme.bodyMedium),
+            children: [
+              const TextSpan(text: '¿Aún no tienes una cuenta? '),
+              TextSpan(
+                text: 'Regístrate',
+                style: const TextStyle(
+                  color: AppTheme.primaryColor,
+                  fontWeight: FontWeight.bold,
+                ),
+                recognizer: TapGestureRecognizer()
+                  ..onTap = () => context.pushNamed('register'),
+              ),
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _LoginFormCard extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return Container(
-      width: double.infinity,
-      constraints: const BoxConstraints(maxWidth: 570),
-      decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor.withAlpha(217),
-        boxShadow: const [BoxShadow(blurRadius: 4, color: Color(0x33000000), offset: Offset(0, 2))],
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(32.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Hero(
-              tag: 'logo_hero',
-              child: Container(
-                width: 80,
-                height: 80,
-                decoration: const BoxDecoration(
-                  color: AppTheme.alternate,
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: Text('L', style: GoogleFonts.notoSans(fontSize: 40, fontWeight: FontWeight.bold, color: AppTheme.primaryColor)),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.only(top: 24, bottom: 8),
-              child: Text('Bienvenido de nuevo', textAlign: TextAlign.center, style: GoogleFonts.interTight(textStyle: textTheme.displaySmall)),
-            ),
-            Text('Ingresa tus credenciales para continuar', textAlign: TextAlign.center, style: textTheme.labelLarge),
-            const SizedBox(height: 24),
-            const _EmailInputField(),
-            const SizedBox(height: 16),
-            const _PasswordInputField(),
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: () => context.pushNamed('forgot_password'),
-                child: Text('¿Olvidaste tu contraseña?', style: textTheme.bodyMedium?.override(color: AppTheme.primaryText.withAlpha(179))),
-              ),
-            ),
-            const SizedBox(height: 16),
-            const _LoginButton(),
-            const SizedBox(height: 24),
-            const _RegisterLink(),
-          ],
-        ),
-      ),
-    ).animate().fade(duration: 400.ms).moveY(begin: 40);
-  }
-}
-
-class _EmailInputField extends StatelessWidget {
-  const _EmailInputField();
-
-  @override
-  Widget build(BuildContext context) {
-    return TextFormField(
-      onChanged: (email) => context.read<AuthBloc>().add(AuthEmailChanged(email)),
-      keyboardType: TextInputType.emailAddress,
-      autofillHints: const [AutofillHints.email],
-      decoration: const InputDecoration(labelText: 'Correo'),
-    );
-  }
-}
-
-class _PasswordInputField extends StatelessWidget {
-  const _PasswordInputField();
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocBuilder<AuthBloc, AuthState>(
-      buildWhen: (previous, current) => previous.isPasswordVisible != current.isPasswordVisible,
-      builder: (context, state) {
-        return TextFormField(
-          onChanged: (password) => context.read<AuthBloc>().add(AuthPasswordChanged(password)),
-          obscureText: !state.isPasswordVisible,
-          autofillHints: const [AutofillHints.password],
-          decoration: InputDecoration(
-            labelText: 'Contraseña',
-            suffixIcon: IconButton(
-              icon: Icon(
-                state.isPasswordVisible ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                color: Theme.of(context).colorScheme.onSurface.withAlpha(153),
-              ),
-              onPressed: () => context.read<AuthBloc>().add(AuthPasswordVisibilityToggled()),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _LoginButton extends StatelessWidget {
-  const _LoginButton();
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocBuilder<AuthBloc, AuthState>(
-      buildWhen: (p, c) => p.status != c.status,
-      builder: (context, state) {
-        final textTheme = Theme.of(context).textTheme;
-        return state.status == FormStatus.loading
-            ? const SizedBox(height: 52, child: Center(child: CircularProgressIndicator()))
-            : CustomButton(
-                onPressed: () => context.read<AuthBloc>().add(AuthLoginWithEmailAndPasswordPressed()),
-                text: 'Iniciar sesión',
-                options: ButtonOptions(
-                  width: double.infinity,
-                  height: 52,
-                  color: AppTheme.primaryColor,
-                  textStyle: GoogleFonts.interTight(textStyle: textTheme.titleSmall, color: Colors.white),
-                  elevation: 3,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              );
-      },
-    );
-  }
-}
-
-class _RegisterLink extends StatelessWidget {
-  const _RegisterLink();
-
-  @override
-  Widget build(BuildContext context) {
-    return RichText(
-      textAlign: TextAlign.center,
-      text: TextSpan(
-        style: GoogleFonts.inter(textStyle: Theme.of(context).textTheme.bodyMedium),
-        children: [
-          const TextSpan(text: '¿Aún no tienes una cuenta? '),
-          TextSpan(
-            text: 'Regístrate',
-            style: const TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold),
-            recognizer: TapGestureRecognizer()..onTap = () => context.pushNamed('register'),
-          ),
-        ],
-      ),
+      ],
     );
   }
 }
