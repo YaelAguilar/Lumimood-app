@@ -80,12 +80,17 @@ class _LoginView extends StatelessWidget {
                       ),
                       child: IconButton(
                         icon: Icon(Icons.arrow_back_rounded, color: AppTheme.primaryText),
-                        onPressed: () => context.pop(),
+                        onPressed: () {
+                          if (context.canPop()) {
+                            context.pop();
+                          } else {
+                            context.goNamed('welcome');
+                          }
+                        },
                       ),
                     ),
                   ),
                   
-                  // Contenido principal
                   SliverFillRemaining(
                     hasScrollBody: false,
                     child: Padding(
@@ -132,7 +137,6 @@ class _LoginCard extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Logo
           Hero(
             tag: 'logo_hero',
             child: Container(
@@ -192,7 +196,6 @@ class _LoginForm extends StatelessWidget {
     
     return Column(
       children: [
-        // Campo de email
         Container(
           decoration: BoxDecoration(
             color: Colors.grey[50],
@@ -207,7 +210,7 @@ class _LoginForm extends StatelessWidget {
               labelText: 'Correo electrónico',
               border: InputBorder.none,
               contentPadding: const EdgeInsets.all(16),
-              prefixIcon: Icon(
+              prefixIcon: const Icon(
                 Icons.email_outlined,
                 color: AppTheme.primaryColor,
               ),
@@ -217,7 +220,6 @@ class _LoginForm extends StatelessWidget {
         
         const SizedBox(height: 16),
         
-        // Campo de contraseña
         BlocBuilder<AuthBloc, AuthState>(
           buildWhen: (previous, current) => previous.isPasswordVisible != current.isPasswordVisible,
           builder: (context, state) {
@@ -235,7 +237,7 @@ class _LoginForm extends StatelessWidget {
                   labelText: 'Contraseña',
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.all(16),
-                  prefixIcon: Icon(
+                  prefixIcon: const Icon(
                     Icons.lock_outline,
                     color: AppTheme.primaryColor,
                   ),
@@ -254,7 +256,6 @@ class _LoginForm extends StatelessWidget {
         
         const SizedBox(height: 8),
         
-        // Enlace de contraseña olvidada
         Align(
           alignment: Alignment.centerRight,
           child: TextButton(
@@ -271,7 +272,6 @@ class _LoginForm extends StatelessWidget {
         
         const SizedBox(height: 24),
         
-        // Botón de login
         BlocBuilder<AuthBloc, AuthState>(
           buildWhen: (p, c) => p.status != c.status,
           builder: (context, state) {
@@ -339,7 +339,6 @@ class _LoginForm extends StatelessWidget {
         
         const SizedBox(height: 24),
         
-        // Enlace de registro
         RichText(
           textAlign: TextAlign.center,
           text: TextSpan(

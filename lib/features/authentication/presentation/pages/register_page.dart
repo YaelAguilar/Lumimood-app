@@ -81,12 +81,17 @@ class _RegisterView extends StatelessWidget {
                       ),
                       child: IconButton(
                         icon: Icon(Icons.arrow_back_rounded, color: AppTheme.primaryText),
-                        onPressed: () => context.pop(),
+                        onPressed: () {
+                          if (context.canPop()) {
+                            context.pop();
+                          } else {
+                            context.goNamed('welcome');
+                          }
+                        },
                       ),
                     ),
                   ),
                   
-                  // Contenido principal
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.all(24.0),
@@ -131,7 +136,6 @@ class _RegisterCard extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Logo
           Hero(
             tag: 'logo_hero',
             child: Container(
@@ -156,7 +160,6 @@ class _RegisterCard extends StatelessWidget {
           
           const SizedBox(height: 24),
           
-          // Título y subtítulo
           Text(
             'Crea tu cuenta',
             textAlign: TextAlign.center,
@@ -192,7 +195,6 @@ class _RegisterForm extends StatelessWidget {
     
     return Column(
       children: [
-        // Campo de nombre
         Container(
           decoration: BoxDecoration(
             color: Colors.grey[50],
@@ -217,7 +219,6 @@ class _RegisterForm extends StatelessWidget {
         
         const SizedBox(height: 16),
         
-        // Campos de apellidos
         Row(
           children: [
             Expanded(
@@ -264,7 +265,6 @@ class _RegisterForm extends StatelessWidget {
         
         const SizedBox(height: 16),
         
-        // Campo de email
         Container(
           decoration: BoxDecoration(
             color: Colors.grey[50],
@@ -288,7 +288,6 @@ class _RegisterForm extends StatelessWidget {
         
         const SizedBox(height: 16),
         
-        // Campo de contraseña
         BlocBuilder<AuthBloc, AuthState>(
           buildWhen: (p, c) => p.isPasswordVisible != c.isPasswordVisible,
           builder: (context, state) {
@@ -324,7 +323,6 @@ class _RegisterForm extends StatelessWidget {
         
         const SizedBox(height: 16),
         
-        // Campo de género
         BlocBuilder<AuthBloc, AuthState>(
           buildWhen: (p, c) => p.gender != c.gender,
           builder: (context, state) {
@@ -360,7 +358,6 @@ class _RegisterForm extends StatelessWidget {
         
         const SizedBox(height: 32),
         
-        // Botón de registro
         BlocBuilder<AuthBloc, AuthState>(
           buildWhen: (p, c) => p.status != c.status,
           builder: (context, state) {
@@ -428,7 +425,6 @@ class _RegisterForm extends StatelessWidget {
         
         const SizedBox(height: 24),
         
-        // Enlace de login
         RichText(
           textAlign: TextAlign.center,
           text: TextSpan(

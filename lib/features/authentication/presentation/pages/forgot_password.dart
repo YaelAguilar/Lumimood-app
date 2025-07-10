@@ -54,11 +54,11 @@ class _ForgotPasswordView extends StatelessWidget {
             ..hideCurrentSnackBar()
             ..showSnackBar(
               SnackBar(
-                content: Row(
+                content: const Row(
                   children: [
-                    const Icon(Icons.check_circle, color: Colors.white, size: 20),
-                    const SizedBox(width: 12),
-                    const Expanded(
+                    Icon(Icons.check_circle, color: Colors.white, size: 20),
+                    SizedBox(width: 12),
+                    Expanded(
                       child: Text('Se ha enviado un enlace de recuperación a tu correo.'),
                     ),
                   ],
@@ -98,7 +98,13 @@ class _ForgotPasswordView extends StatelessWidget {
                     ),
                     child: IconButton(
                       icon: Icon(Icons.arrow_back_rounded, color: AppTheme.primaryText),
-                      onPressed: () => context.pop(),
+                      onPressed: () {
+                        if (context.canPop()) {
+                          context.pop();
+                        } else {
+                          context.goNamed('welcome');
+                        }
+                      },
                     ),
                   ),
                 ),
@@ -148,7 +154,6 @@ class _ForgotPasswordCard extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Icono
           Container(
             width: 80,
             height: 80,
@@ -185,7 +190,6 @@ class _ForgotPasswordCard extends StatelessWidget {
           
           const SizedBox(height: 32),
           
-          // Campo de email
           Container(
             decoration: BoxDecoration(
               color: Colors.grey[50],
@@ -209,7 +213,6 @@ class _ForgotPasswordCard extends StatelessWidget {
           
           const SizedBox(height: 32),
           
-          // Botón de envío
           BlocBuilder<AuthBloc, AuthState>(
             builder: (context, state) {
               return Container(
