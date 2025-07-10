@@ -51,19 +51,22 @@ class _WelcomeContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Spacer(flex: 2),
-            const _WelcomeIllustration(),
-            const SizedBox(height: 40),
-            const _WelcomeHeader(),
-            const Spacer(flex: 3),
-            const _ActionButtons(),
-          ],
+      child: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 40.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 40),
+              const _WelcomeIllustration(),
+              const SizedBox(height: 40),
+              const _WelcomeHeader(),
+              const SizedBox(height: 60),
+              const _ActionButtons(),
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
     );
@@ -81,11 +84,11 @@ class _WelcomeIllustration extends StatelessWidget {
         height: 140,
         width: 140,
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.82),
+          color: Colors.white.withAlpha(210),
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: AppTheme.primaryColor.withValues(alpha: 0.24),
+              color: AppTheme.primaryColor.withAlpha(80),
               blurRadius: 30,
               spreadRadius: 5,
             ),
@@ -119,26 +122,23 @@ class _WelcomeHeader extends StatelessWidget {
     return Column(
       children: [
         Text(
-          'Bienvenido a Lumimood',
+          'Tu espacio para sentir y crecer',
           textAlign: TextAlign.center,
           style: GoogleFonts.interTight(
-            fontSize: 32,
+            textStyle: Theme.of(context).textTheme.displaySmall,
             fontWeight: FontWeight.bold,
             color: AppTheme.primaryText,
             height: 1.2,
-            letterSpacing: -0.5,
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
         Text(
-          'Gracias por unirte a Lumimood.\nAccede o crea tu cuenta, y empieza con este viaje',
+          'Registra tus emociones, encuentra claridad y cultiva tu bienestar día a día.',
           textAlign: TextAlign.center,
-          style: GoogleFonts.interTight(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-            color: AppTheme.primaryText.withValues(alpha: 0.75),
+          style: GoogleFonts.inter(
+            textStyle: Theme.of(context).textTheme.bodyLarge,
+            color: AppTheme.primaryText.withAlpha(180),
             height: 1.5,
-            letterSpacing: 0.2,
           ),
         ),
       ],
@@ -151,6 +151,7 @@ class _ActionButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -161,33 +162,29 @@ class _ActionButtons extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 18),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             elevation: 4,
-            shadowColor: AppTheme.primaryColor.withValues(alpha: 0.4),
+            shadowColor: AppTheme.primaryColor.withAlpha(100),
           ),
           onPressed: () => context.read<WelcomeBloc>().add(RegisterButtonPressed()),
           child: Text(
             'Empezar ahora',
-            style: GoogleFonts.interTight(
-              fontSize: 17,
-              fontWeight: FontWeight.bold,
+            style: textTheme.titleMedium?.copyWith(
               color: Colors.white,
-              letterSpacing: 0.2,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ),
         const SizedBox(height: 12),
         TextButton(
           style: TextButton.styleFrom(
-            foregroundColor: AppTheme.primaryText.withValues(alpha: 0.8),
+            foregroundColor: AppTheme.primaryText.withAlpha(200),
             padding: const EdgeInsets.symmetric(vertical: 14),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           ),
           onPressed: () => context.read<WelcomeBloc>().add(LoginButtonPressed()),
           child: Text(
             'Ya tengo una cuenta',
-            style: GoogleFonts.interTight(
-              fontSize: 16,
+            style: textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w600,
-              letterSpacing: 0.1,
             ),
           ),
         ),
