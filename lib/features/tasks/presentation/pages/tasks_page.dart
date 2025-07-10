@@ -1,11 +1,15 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:percent_indicator/percent_indicator.dart';
+import 'package:percent_indicator/linear_percent_indicator.dart';
 import '../../../../core/injection_container.dart';
 import '../../../../core/presentation/theme.dart';
-import '../../../../core/presentation/widgets/custom_button.dart';
+import '../../../welcome/presentation/widgets/animated_background.dart';
+import '../../domain/entities/task.dart';
 import '../bloc/tasks_bloc.dart';
 
 class TasksPage extends StatelessWidget {
@@ -23,177 +27,245 @@ class TasksPage extends StatelessWidget {
 class _TasksView extends StatelessWidget {
   const _TasksView();
 
-  void _showAddTaskDialog(BuildContext context) {
-    final taskController = TextEditingController();
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (dialogContext) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(dialogContext).viewInsets.bottom,
-            top: 20,
-            left: 20,
-            right: 20,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Añadir Nueva Tarea', style: Theme.of(dialogContext).textTheme.headlineSmall),
-              const SizedBox(height: 20),
-              TextField(
-                controller: taskController,
-                autofocus: true,
-                decoration: const InputDecoration(labelText: 'Título de la tarea'),
-                onSubmitted: (_) {
-                  if (taskController.text.isNotEmpty) {
-                    context.read<TasksBloc>().add(AddNewTask(taskController.text));
-                  }
-                  Navigator.pop(dialogContext);
-                },
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      extendBodyBehindAppBar: true,
+      body: Stack(
+        children: [
+          const AnimatedBackground(),
+          CustomScrollView(
+            slivers: [
+              SliverAppBar(
+                pinned: true,
+                floating: true,
+                elevation: 0,
+                backgroundColor: AppTheme.scaffoldBackground.withAlpha(200),
+                flexibleSpace: ClipRRect(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                    child: Container(color: Colors.transparent),
+                  ),
+                ),
+                leading: IconButton(
+                  icon: Icon(Icons.arrow_back_ios_new_rounded, color: AppTheme.primaryText, size: 20),
+                  onPressed: () => context.pop(),
+                ),
+                title: Text(
+                  'Mis Tareas',
+                  style: GoogleFonts.interTight(
+                    textStyle: Theme.of(context).textTheme.headlineSmall,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                centerTitle: true,
               ),
-              const SizedBox(height: 20),
-              CustomButton(
-                onPressed: () {
-                  if (taskController.text.isNotEmpty) {
-                    context.read<TasksBloc>().add(AddNewTask(taskController.text));
-                  }
-                  Navigator.pop(dialogContext);
-                },
-                text: 'Añadir',
-                options: ButtonOptions(
-                  width: double.infinity,
-                  height: 50,
-                  color: AppTheme.primaryColor,
-                  textStyle: Theme.of(dialogContext).textTheme.titleSmall!.copyWith(color: Colors.white),
-                  borderRadius: BorderRadius.circular(12),
+              SliverToBoxAdapter(
+                child: BlocBuilder<TasksBloc, TasksState>(
+                  builder: (context, state) {
+                    if (state.status == TasksStatus.loading || state.status == TasksStatus.initial) {
+                      return const Center(
+                        child: Padding(
+                          padding: EdgeInsets.only(top: 100),
+                          child: CircularProgressIndicator(),
+                        ),
+                      );
+                    }
+                    if (state.status == TasksStatus.error) {
+                      return Center(child: Text(state.errorMessage ?? 'Error al cargar tareas'));
+                    }
+                    return Column(
+                      children: [
+                        const SizedBox(height: 24),
+                        _ProgressCard(progress: state.progress, taskCount: state.tasks.length),
+                        const SizedBox(height: 16),
+                        _TaskList(tasks: state.tasks),
+                        const SizedBox(height: 24),
+                      ],
+                    );
+                  },
                 ),
               ),
-              const SizedBox(height: 20),
             ],
-          ),
-        );
-      },
+          )
+        ],
+      ),
     );
   }
+}
+
+class _ProgressCard extends StatelessWidget {
+  final double progress;
+  final int taskCount;
+
+  const _ProgressCard({required this.progress, required this.taskCount});
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final completedTasks = (progress * taskCount).round();
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.pop(),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(15),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
         ),
-        title: Text('Tareas', style: GoogleFonts.interTight(textStyle: textTheme.headlineSmall)),
-        centerTitle: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Tu Progreso',
+                  style: GoogleFonts.interTight(
+                    textStyle: textTheme.titleLarge,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  '$completedTasks / $taskCount',
+                  style: GoogleFonts.inter(
+                    textStyle: textTheme.titleMedium,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primaryColor,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Sigue así, ¡lo estás haciendo genial!',
+              style: textTheme.bodyMedium?.copyWith(color: AppTheme.primaryText.withAlpha(150)),
+            ),
+            const SizedBox(height: 20),
+            LinearPercentIndicator(
+              percent: progress,
+              lineHeight: 14.0,
+              backgroundColor: AppTheme.alternate,
+              progressColor: AppTheme.primaryColor,
+              barRadius: const Radius.circular(12),
+              padding: EdgeInsets.zero,
+              animation: true,
+              animateFromLastPercent: true,
+              animationDuration: 800,
+            ),
+          ],
+        ),
       ),
-      body: BlocBuilder<TasksBloc, TasksState>(
-        builder: (context, state) {
-          if (state.status == TasksStatus.loading || state.status == TasksStatus.initial) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (state.status == TasksStatus.error) {
-            return Center(child: Text(state.errorMessage ?? 'Error al cargar tareas'));
-          }
+    ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2);
+  }
+}
 
-          return Stack(
+class _TaskList extends StatelessWidget {
+  final List<Task> tasks;
+
+  const _TaskList({required this.tasks});
+
+  @override
+  Widget build(BuildContext context) {
+    if (tasks.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 50),
+        child: Center(
+          child: Column(
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  LinearPercentIndicator(
-                    percent: state.progress,
-                    lineHeight: 12.0,
-                    backgroundColor: AppTheme.alternate,
-                    progressColor: AppTheme.primaryColor,
-                    barRadius: const Radius.circular(0),
-                    padding: EdgeInsets.zero,
-                    animation: true,
+              Icon(Icons.check_circle_outline_rounded, size: 60, color: AppTheme.primaryColor.withAlpha(150)),
+              const SizedBox(height: 16),
+              const Text('¡No hay tareas por hoy!', style: TextStyle(fontSize: 16)),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      itemCount: tasks.length,
+      itemBuilder: (context, index) {
+        final task = tasks[index];
+        return _TaskItem(task: task)
+            .animate()
+            .fadeIn(delay: (200 + index * 100).ms)
+            .slideY(begin: 0.5, duration: 600.ms, curve: Curves.easeOutCubic);
+      },
+    );
+  }
+}
+
+class _TaskItem extends StatelessWidget {
+  final Task task;
+
+  const _TaskItem({required this.task});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      color: Colors.white,
+      child: InkWell(
+        onTap: () {
+          HapticFeedback.lightImpact();
+          context.read<TasksBloc>().add(ToggleTask(task.id));
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+          child: Row(
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+                width: 26,
+                height: 26,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: task.isCompleted
+                      ? const LinearGradient(
+                          colors: [AppTheme.primaryColor, Color(0xFF81C784)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        )
+                      : null,
+                  border: Border.all(
+                    color: task.isCompleted ? Colors.transparent : Colors.grey.shade300,
+                    width: 2,
                   ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                    child: Text(
-                      state.tasks.isEmpty ? 'Añade tu primera tarea' : 'Tus tareas',
-                      style: textTheme.labelMedium
-                    ),
-                  ),
-                  Expanded(
-                    child: ListView.builder(
-                      padding: EdgeInsets.zero,
-                      itemCount: state.tasks.length,
-                      itemBuilder: (context, index) {
-                        final task = state.tasks[index];
-                        return Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                          child: Container(
-                            height: 70,
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).scaffoldBackgroundColor,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppTheme.alternate, width: 1),
-                            ),
-                            child: CheckboxListTile(
-                              value: task.isCompleted,
-                              onChanged: (_) => context.read<TasksBloc>().add(ToggleTask(task.id)),
-                              title: Text(
-                                task.title, 
-                                style: textTheme.bodyLarge?.copyWith(
-                                  decoration: task.isCompleted ? TextDecoration.lineThrough : TextDecoration.none,
-                                  color: task.isCompleted ? Colors.grey : null
-                                )
-                              ),
-                              activeColor: AppTheme.primaryColor,
-                              checkColor: Colors.white,
-                              controlAffinity: ListTileControlAffinity.trailing,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 140),
-                ],
+                ),
+                child: task.isCompleted
+                    ? const Icon(Icons.check, color: Colors.white, size: 16)
+                    : null,
               ),
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: Container(
-                  color: Colors.transparent,
-                  height: 140,
-                  width: double.infinity,
-                  child: Center(
-                    child: CustomButton(
-                      onPressed: () => _showAddTaskDialog(context),
-                      text: 'Añadir Tarea',
-                      icon: const Icon(Icons.add, color: Colors.white),
-                      options: ButtonOptions(
-                        width: 270,
-                        height: 50,
-                        color: AppTheme.primaryColor,
-                        textStyle: GoogleFonts.interTight(
-                          textStyle: textTheme.titleSmall,
-                          color: Colors.white,
-                        ),
-                        elevation: 4,
-                        borderRadius: BorderRadius.circular(50),
+              const SizedBox(width: 16),
+              Expanded(
+                child: AnimatedDefaultTextStyle(
+                  duration: const Duration(milliseconds: 300),
+                  style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+                        decoration: task.isCompleted ? TextDecoration.lineThrough : TextDecoration.none,
+                        color: task.isCompleted ? Colors.grey.shade500 : AppTheme.primaryText,
+                        fontWeight: FontWeight.w500,
                       ),
-                    ),
-                  ),
+                  child: Text(task.title),
                 ),
               ),
             ],
-          );
-        },
+          ),
+        ),
       ),
     );
   }
