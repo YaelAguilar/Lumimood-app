@@ -1,13 +1,13 @@
 import 'package:go_router/go_router.dart';
-import '../features/authentication/presentation/pages/forgot_password.dart';
-import '../features/authentication/presentation/pages/login_page.dart';
-import '../features/authentication/presentation/pages/register_page.dart';
-import '../features/diary/presentation/pages/diary_page.dart';
-import '../features/notes/presentation/pages/create_note_page.dart';
-import '../features/notes/presentation/pages/notes_page.dart';
-import '../features/statistics/presentation/pages/statistics_page.dart';
-import '../features/tasks/presentation/pages/tasks_page.dart';
-import '../features/welcome/presentation/pages/welcome_page.dart';
+import '../../features/authentication/presentation/pages/forgot_password.dart';
+import '../../features/authentication/presentation/pages/login_page.dart';
+import '../../features/authentication/presentation/pages/register_page.dart';
+import '../../features/diary/presentation/pages/diary_page.dart';
+import '../../features/notes/presentation/pages/create_note_page.dart';
+import '../../features/notes/presentation/pages/notes_page.dart';
+import '../../features/statistics/presentation/pages/statistics_page.dart';
+import '../../features/tasks/presentation/pages/tasks_page.dart';
+import '../../features/welcome/presentation/pages/welcome_page.dart';
 
 class AppRouter {
   static final router = GoRouter(

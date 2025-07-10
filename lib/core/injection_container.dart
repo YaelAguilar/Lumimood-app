@@ -8,7 +8,7 @@ import '../features/welcome/presentation/bloc/welcome_bloc.dart';
 
 final getIt = GetIt.instance;
 
-void setup() {
+Future<void> init() async {
   getIt.registerFactory(() => WelcomeBloc());
   getIt.registerFactory(() => AuthBloc());
   getIt.registerFactory(() => DiaryBloc());
