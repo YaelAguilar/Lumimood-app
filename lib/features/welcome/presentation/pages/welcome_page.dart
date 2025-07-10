@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -7,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/injection_container.dart';
 import '../../../../core/presentation/theme.dart';
 import '../bloc/welcome_bloc.dart';
+import '../widgets/animated_background.dart';
 
 class WelcomePage extends StatelessWidget {
   const WelcomePage({super.key});
@@ -33,356 +33,196 @@ class _WelcomeView extends StatelessWidget {
           context.pushNamed('register');
         }
       },
-      child: Scaffold(
-        body: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFFE0FBFD), Color(0xFFC4F2C2)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          child: const SafeArea(
-            child: _WelcomeContent(),
-          ),
+      child: const Scaffold(
+        body: Stack(
+          children: [
+            AnimatedBackground(),
+            _WelcomeContent(),
+          ],
         ),
       ),
     );
   }
 }
 
-class _WelcomeContent extends StatefulWidget {
+class _WelcomeContent extends StatelessWidget {
   const _WelcomeContent();
 
   @override
-  State<_WelcomeContent> createState() => _WelcomeContentState();
-}
-
-class _WelcomeContentState extends State<_WelcomeContent> with WidgetsBindingObserver {
-  bool _isLoading = false;
-  String? _loadingAction;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _resetLoadingState();
-    }
-  }
-
-  void _resetLoadingState() {
-    if (mounted && _isLoading) {
-      setState(() {
-        _isLoading = false;
-        _loadingAction = null;
-      });
-    }
-  }
-
-  void _handleNavigation(String action) {
-    if (_isLoading) return;
-    
-    setState(() {
-      _isLoading = true;
-      _loadingAction = action;
-    });
-    
-    HapticFeedback.lightImpact();
-    
-    Future.delayed(const Duration(seconds: 3), () {
-      _resetLoadingState();
-    });
-    
-    if (action == 'login') {
-      context.read<WelcomeBloc>().add(LoginButtonPressed());
-    } else {
-      context.read<WelcomeBloc>().add(RegisterButtonPressed());
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
-        children: [
-          const Spacer(flex: 2),
-          
-          _ModernLogo(),
-          
-          const SizedBox(height: 48),
-          
-          _WelcomeCard(),
-          
-          const Spacer(flex: 2),
-          
-          _ActionButtons(
-            isLoading: _isLoading,
-            loadingAction: _loadingAction,
-            onLogin: () => _handleNavigation('login'),
-            onRegister: () => _handleNavigation('register'),
-          ),
-          
-          const SizedBox(height: 32),
-        ],
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 40.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Spacer(flex: 2),
+            const _WelcomeIllustration(),
+            const SizedBox(height: 48),
+            const _WelcomeHeader(),
+            const Spacer(flex: 3),
+            const _ActionButtons(),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _ModernLogo extends StatelessWidget {
+class _WelcomeIllustration extends StatelessWidget {
+  const _WelcomeIllustration();
+
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    
     return Hero(
       tag: 'logo_hero',
       child: Container(
-        width: 120,
-        height: 120,
+        height: 140,
+        width: 140,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Colors.white.withAlpha(210),
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withAlpha(13),
+              color: AppTheme.primaryColor.withAlpha(60),
               blurRadius: 30,
-              offset: const Offset(0, 15),
-            ),
-            BoxShadow(
-              color: AppTheme.primaryColor.withAlpha(51),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
+              spreadRadius: 5,
             ),
           ],
         ),
         child: Center(
-          child: Text(
-            'L',
-            style: GoogleFonts.notoSans(
-              textStyle: textTheme.displayLarge,
-              color: AppTheme.primaryColor,
-              fontWeight: FontWeight.bold,
-            ),
+          child: CustomPaint(
+            size: const Size(50, 50),
+            painter: _LeafPainter(),
           ),
         ),
       ),
     )
-    .animate(onComplete: (controller) => controller.repeat(reverse: true))
+    .animate().fadeIn(duration: 1200.ms, curve: Curves.easeOutCubic)
+    .slideY(begin: 0.2, duration: 1000.ms, curve: Curves.easeOutCubic)
+    .animate(onComplete: (c) => c.repeat(reverse: true))
     .scale(
-      duration: 3000.ms,
-      begin: const Offset(1, 1),
-      end: const Offset(1.05, 1.05),
+      duration: 6.seconds,
       curve: Curves.easeInOut,
-    )
-    .animate()
-    .fadeIn(delay: 300.ms, duration: 600.ms)
-    .scale(begin: const Offset(0.8, 0.8), curve: Curves.elasticOut);
+      begin: const Offset(1, 1),
+      end: const Offset(1.04, 1.04),
+    );
   }
 }
 
-class _WelcomeCard extends StatelessWidget {
+class _WelcomeHeader extends StatelessWidget {
+  const _WelcomeHeader();
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(
-        color: Colors.white.withAlpha(179),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withAlpha(153)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(13),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+    return Column(
+      children: [
+        Text(
+          'Bienvenido a Lumimood',
+          textAlign: TextAlign.center,
+          style: GoogleFonts.interTight(
+            textStyle: textTheme.displaySmall,
+            fontWeight: FontWeight.bold,
+            color: AppTheme.primaryText,
+            height: 1.2,
           ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Text(
-            'Bienvenido a Lumimood',
-            textAlign: TextAlign.center,
-            style: GoogleFonts.interTight(
-              textStyle: textTheme.headlineMedium,
-              fontWeight: FontWeight.bold,
-              color: AppTheme.primaryText,
-            ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'Gracias por unirte a Lumimood.\nAccede o crea tu cuenta, y empieza con este viaje',
+          textAlign: TextAlign.center,
+          style: GoogleFonts.inter(
+            textStyle: textTheme.bodyLarge,
+            color: AppTheme.primaryText.withAlpha(180),
+            height: 1.5,
           ),
-          const SizedBox(height: 16),
-          Container(
-            height: 4,
-            width: 80,
-            decoration: BoxDecoration(
-              color: AppTheme.primaryColor,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            'Tu viaje hacia el bienestar emocional comienza aquí. Registra tus emociones y descubre patrones en tu estado de ánimo.',
-            textAlign: TextAlign.center,
-            style: GoogleFonts.inter(
-              textStyle: textTheme.bodyLarge,
-              color: AppTheme.primaryText.withAlpha(179),
-              height: 1.5,
-            ),
-          ),
-        ],
-      ),
-    ).animate(delay: 500.ms).fadeIn(duration: 600.ms).slideY(begin: 0.3);
+        ),
+      ],
+    ).animate().fadeIn(delay: 500.ms, duration: 1000.ms).slideY(begin: 0.3);
   }
 }
 
 class _ActionButtons extends StatelessWidget {
-  final bool isLoading;
-  final String? loadingAction;
-  final VoidCallback onLogin;
-  final VoidCallback onRegister;
-
-  const _ActionButtons({
-    required this.isLoading,
-    required this.loadingAction,
-    required this.onLogin,
-    required this.onRegister,
-  });
+  const _ActionButtons();
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Botón de Login
-        Container(
-          width: double.infinity,
-          height: 56,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                AppTheme.primaryColor,
-                AppTheme.primaryColor.withAlpha(204),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: AppTheme.primaryColor.withAlpha(51),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppTheme.primaryColor,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 18),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            elevation: 4,
+            shadowColor: AppTheme.primaryColor.withAlpha(100),
           ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(16),
-              onTap: isLoading ? null : onLogin,
-              child: Center(
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
-                  child: isLoading && loadingAction == 'login'
-                      ? const SizedBox(
-                          key: ValueKey('login_loader'),
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            color: Colors.white,
-                          ),
-                        )
-                      : Row(
-                          key: const ValueKey('login_text'),
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.login, color: Colors.white, size: 20),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Iniciar sesión',
-                              style: textTheme.titleMedium?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                ),
-              ),
+          onPressed: () => context.read<WelcomeBloc>().add(RegisterButtonPressed()),
+          child: Text(
+            'Empezar ahora',
+            style: textTheme.titleMedium?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
             ),
           ),
-        ).animate(delay: 700.ms).fadeIn().slideY(begin: 0.3),
-        
-        const SizedBox(height: 16),
-        
-        // Botón de Registro
-        Container(
-          width: double.infinity,
-          height: 56,
-          decoration: BoxDecoration(
-            color: Colors.white.withAlpha(179),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppTheme.primaryColor, width: 2),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withAlpha(13),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
+        ),
+        const SizedBox(height: 12),
+        TextButton(
+          style: TextButton.styleFrom(
+            foregroundColor: AppTheme.primaryText.withAlpha(200),
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(16),
-              onTap: isLoading ? null : onRegister,
-              child: Center(
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
-                  child: isLoading && loadingAction == 'register'
-                      ? SizedBox(
-                          key: const ValueKey('register_loader'),
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            color: AppTheme.primaryColor,
-                          ),
-                        )
-                      : Row(
-                          key: const ValueKey('register_text'),
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.person_add, color: AppTheme.primaryColor, size: 20),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Crear cuenta nueva',
-                              style: textTheme.titleMedium?.copyWith(
-                                color: AppTheme.primaryColor,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                ),
-              ),
+          onPressed: () => context.read<WelcomeBloc>().add(LoginButtonPressed()),
+          child: Text(
+            'Ya tengo una cuenta',
+            style: textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
             ),
           ),
-        ).animate(delay: 800.ms).fadeIn().slideY(begin: 0.3),
+        ),
       ],
-    );
+    ).animate().fadeIn(delay: 700.ms, duration: 1000.ms).slideY(begin: 0.3);
   }
+}
+
+class _LeafPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = AppTheme.primaryColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 6.0
+      ..strokeCap = StrokeCap.round;
+
+    final path = Path();
+    path.moveTo(size.width * 0.5, size.height);
+    path.lineTo(size.width * 0.5, size.height * 0.4);
+
+    path.quadraticBezierTo(
+      size.width * 0.1,
+      size.height * 0.5,
+      size.width * 0.5,
+      size.height * 0.2,
+    );
+
+    path.moveTo(size.width * 0.5, size.height * 0.4);
+
+    path.quadraticBezierTo(
+      size.width * 0.9,
+      size.height * 0.5,
+      size.width * 0.5,
+      size.height * 0,
+    );
+    
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
