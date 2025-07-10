@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../domain/entities/emotion.dart';
 
-class EmotionButton extends StatelessWidget {
+class EmotionButton extends StatefulWidget {
   final Emotion emotion;
   final bool isSelected;
   final VoidCallback onPressed;
@@ -13,6 +14,38 @@ class EmotionButton extends StatelessWidget {
     required this.isSelected,
     required this.onPressed,
   });
+
+  @override
+  State<EmotionButton> createState() => _EmotionButtonState();
+}
+
+class _EmotionButtonState extends State<EmotionButton> 
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 150),
+      vsync: this,
+    );
+    
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.95,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeInOut,
+    ));
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
 
   String _getEmojiForEmotion(String emotionName) {
     switch (emotionName.toLowerCase()) {
@@ -28,6 +61,14 @@ class EmotionButton extends StatelessWidget {
         return '😢';
       case 'disgustado':
         return '🤢';
+      case 'emocionado':
+        return '🤗';
+      case 'relajado':
+        return '😌';
+      case 'ansioso':
+        return '😰';
+      case 'confundido':
+        return '😕';
       default:
         return '😐';
     }
@@ -36,135 +77,197 @@ class EmotionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final emoji = _getEmojiForEmotion(emotion.name);
+    final emoji = _getEmojiForEmotion(widget.emotion.name);
     
     return GestureDetector(
-      onTap: onPressed,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOutCubic,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeOutCubic,
-                  width: isSelected ? 90 : 75,
-                  height: isSelected ? 90 : 75,
-                  decoration: BoxDecoration(
-                    color: emotion.color,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      if (isSelected) ...[
-                        BoxShadow(
-                          color: emotion.color.withAlpha(102),
-                          blurRadius: 20,
-                          spreadRadius: 0,
-                          offset: const Offset(0, 8),
+      onTapDown: (_) {
+        _animationController.forward();
+        HapticFeedback.lightImpact();
+      },
+      onTapUp: (_) {
+        _animationController.reverse();
+        widget.onPressed();
+      },
+      onTapCancel: () {
+        _animationController.reverse();
+      },
+      child: AnimatedBuilder(
+        animation: _animationController,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: _scaleAnimation.value,
+            child: SizedBox(
+              width: 120,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Stack(
+                    alignment: Alignment.center,
+                    clipBehavior: Clip.none,
+                    children: [
+                      if (widget.isSelected)
+                        Container(
+                          width: 110,
+                          height: 110,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: RadialGradient(
+                              colors: [
+                                widget.emotion.color.withValues(alpha: 0.3),
+                                widget.emotion.color.withValues(alpha: 0.1),
+                                widget.emotion.color.withValues(alpha: 0.05),
+                                Colors.transparent,
+                              ],
+                              stops: const [0.0, 0.4, 0.7, 1.0],
+                            ),
+                          ),
+                        ).animate(
+                          onPlay: (controller) => controller.repeat(reverse: true),
+                        ).scale(
+                          begin: const Offset(0.8, 0.8),
+                          end: const Offset(1.2, 1.2),
+                          duration: 2000.ms,
+                          curve: Curves.easeInOut,
                         ),
-                        BoxShadow(
-                          color: emotion.color.withAlpha(51),
-                          blurRadius: 40,
-                          spreadRadius: 0,
-                          offset: const Offset(0, 16),
+
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeOutCubic,
+                        width: widget.isSelected ? 90 : 75,
+                        height: widget.isSelected ? 90 : 75,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              widget.emotion.color,
+                              widget.emotion.color.withValues(alpha: 0.8),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            if (widget.isSelected) ...[
+                              BoxShadow(
+                                color: widget.emotion.color.withValues(alpha: 0.4),
+                                blurRadius: 20,
+                                spreadRadius: 0,
+                                offset: const Offset(0, 8),
+                              ),
+                              BoxShadow(
+                                color: widget.emotion.color.withValues(alpha: 0.2),
+                                blurRadius: 40,
+                                spreadRadius: 0,
+                                offset: const Offset(0, 16),
+                              ),
+                            ] else ...[
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.1),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ],
                         ),
-                      ] else ...[
-                        BoxShadow(
-                          color: Colors.black.withAlpha(13),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
+                      ),
+                      
+                      if (widget.isSelected)
+                        Container(
+                          width: 90,
+                          height: 90,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white,
+                              width: 3,
+                            ),
+                          ),
                         ),
-                      ],
+                      
+                      // Emoji
+                      SizedBox(
+                        width: widget.isSelected ? 50 : 40,
+                        height: widget.isSelected ? 50 : 40,
+                        child: Center(
+                          child: Text(
+                            emoji,
+                            style: TextStyle(
+                              fontSize: widget.isSelected ? 32 : 26,
+                            ),
+                          ),
+                        ),
+                      ),
+                      
+                      if (widget.isSelected)
+                        Positioned(
+                          bottom: -2,
+                          right: -2,
+                          child: Container(
+                            width: 28,
+                            height: 28,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.2),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              Icons.check_rounded,
+                              size: 18,
+                              color: widget.emotion.color,
+                            ),
+                          ),
+                        ).animate().scale(
+                          delay: 100.ms,
+                          curve: Curves.elasticOut,
+                          duration: 400.ms,
+                        ),
                     ],
                   ),
-                ),
-                
-                if (isSelected)
+                  
+                  const SizedBox(height: 12),
+                  
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 300),
-                    width: 90,
-                    height: 90,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: widget.isSelected ? 12 : 8,
+                      vertical: widget.isSelected ? 8 : 6,
+                    ),
                     decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Colors.white,
-                        width: 3,
-                      ),
+                      color: widget.isSelected 
+                          ? widget.emotion.color.withValues(alpha: 0.1)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(12),
+                      border: widget.isSelected
+                          ? Border.all(
+                              color: widget.emotion.color.withValues(alpha: 0.3),
+                              width: 1,
+                            )
+                          : null,
                     ),
-                  ),
-                
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  width: isSelected ? 45 : 35,
-                  height: isSelected ? 45 : 35,
-                  child: Center(
                     child: Text(
-                      emoji,
-                      style: TextStyle(
-                        fontSize: isSelected ? 28 : 22,
+                      widget.emotion.name,
+                      style: textTheme.bodyMedium?.copyWith(
+                        fontWeight: widget.isSelected ? FontWeight.bold : FontWeight.w500,
+                        color: widget.isSelected ? widget.emotion.color : Colors.grey[700],
+                        fontSize: widget.isSelected ? 14 : 12,
                       ),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                ),
-                
-                if (isSelected)
-                  Positioned(
-                    bottom: -2,
-                    right: -2,
-                    child: Container(
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withAlpha(26),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Icon(
-                        Icons.check,
-                        size: 16,
-                        color: emotion.color,
-                      ),
-                    ),
-                  ).animate().scale(delay: 100.ms, curve: Curves.elasticOut),
-              ],
-            ),
-            
-            const SizedBox(height: 12),
-            
-            AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 300),
-              style: textTheme.bodyMedium?.copyWith(
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                color: isSelected ? emotion.color : Colors.grey[700],
-                fontSize: isSelected ? 14 : 12,
-              ) ?? const TextStyle(),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: isSelected ? emotion.color.withAlpha(26) : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  emotion.name,
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                ],
               ),
             ),
-          ],
-        ),
+          );
+        },
       ),
-    ).animate(target: isSelected ? 1 : 0)
+    ).animate(target: widget.isSelected ? 1 : 0)
       .scale(
         begin: const Offset(0.9, 0.9),
         end: const Offset(1.0, 1.0),
