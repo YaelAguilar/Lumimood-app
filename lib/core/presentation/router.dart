@@ -11,8 +11,7 @@ import '../../features/welcome/presentation/pages/welcome_page.dart';
 
 class AppRouter {
   static final router = GoRouter(
-    initialLocation: '/', 
-    
+    initialLocation: '/',
     routes: [
       GoRoute(
         path: '/',
