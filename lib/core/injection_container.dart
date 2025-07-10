@@ -34,6 +34,13 @@ import '../features/tasks/domain/usecases/get_tasks.dart';
 import '../features/tasks/domain/usecases/toggle_task_completion.dart';
 import '../features/tasks/presentation/bloc/tasks_bloc.dart';
 
+// Statistics Imports
+import '../features/statistics/data/datasources/statistics_remote_datasource.dart';
+import '../features/statistics/data/repositories/statistics_repository_impl.dart';
+import '../features/statistics/domain/repositories/statistics_repository.dart';
+import '../features/statistics/domain/usecases/get_statistics_data.dart';
+import '../features/statistics/presentation/bloc/statistics_bloc.dart';
+
 final getIt = GetIt.instance;
 
 Future<void> init() async {
@@ -42,6 +49,7 @@ Future<void> init() async {
   _initDiary();
   _initNotes();
   _initTasks();
+  _initStatistics();
 }
 
 void _initAuth() {
@@ -53,17 +61,14 @@ void _initAuth() {
       forgotPassword: getIt(),
     ),
   );
-
   // Use Cases
   getIt.registerLazySingleton(() => LoginUser(getIt()));
   getIt.registerLazySingleton(() => RegisterUser(getIt()));
   getIt.registerLazySingleton(() => ForgotPassword(getIt()));
-
   // Repository
   getIt.registerLazySingleton<AuthRepository>(
     () => AuthRepositoryImpl(remoteDataSource: getIt()),
   );
-
   // Data Sources
   getIt.registerLazySingleton<AuthRemoteDataSource>(
     () => AuthRemoteDataSourceImpl(),
@@ -78,16 +83,13 @@ void _initDiary() {
       saveDiaryEntry: getIt(),
     ),
   );
-
   // Use Cases
   getIt.registerLazySingleton(() => GetEmotions(getIt()));
   getIt.registerLazySingleton(() => SaveDiaryEntry(getIt()));
-
   // Repository
   getIt.registerLazySingleton<DiaryRepository>(
     () => DiaryRepositoryImpl(localDataSource: getIt()),
   );
-
   // Data Sources
   getIt.registerLazySingleton<DiaryLocalDataSource>(
     () => DiaryLocalDataSourceImpl(),
@@ -102,16 +104,13 @@ void _initNotes() {
       addNote: getIt(),
     ),
   );
-
   // Use Cases
   getIt.registerLazySingleton(() => GetNotes(getIt()));
   getIt.registerLazySingleton(() => AddNote(getIt()));
-
   // Repository
   getIt.registerLazySingleton<NotesRepository>(
     () => NotesRepositoryImpl(localDataSource: getIt()),
   );
-
   // Data Sources
   getIt.registerLazySingleton<NotesLocalDataSource>(
     () => NotesLocalDataSourceImpl(),
@@ -127,19 +126,33 @@ void _initTasks() {
       toggleTaskCompletion: getIt(),
     ),
   );
-
   // Use Cases
   getIt.registerLazySingleton(() => GetTasks(getIt()));
   getIt.registerLazySingleton(() => tasks_add.AddTask(getIt()));
   getIt.registerLazySingleton(() => ToggleTaskCompletion(getIt()));
-
   // Repository
   getIt.registerLazySingleton<TasksRepository>(
     () => TasksRepositoryImpl(localDataSource: getIt()),
   );
-
   // Data Sources
   getIt.registerLazySingleton<TasksLocalDataSource>(
     () => TasksLocalDataSourceImpl(),
+  );
+}
+
+void _initStatistics() {
+  // BLoC
+  getIt.registerFactory(
+    () => StatisticsBloc(getStatisticsData: getIt()),
+  );
+  // Use Cases
+  getIt.registerLazySingleton(() => GetStatisticsData(getIt()));
+  // Repository
+  getIt.registerLazySingleton<StatisticsRepository>(
+    () => StatisticsRepositoryImpl(remoteDataSource: getIt()),
+  );
+  // Data Sources
+  getIt.registerLazySingleton<StatisticsRemoteDataSource>(
+    () => StatisticsRemoteDataSourceImpl(),
   );
 }
