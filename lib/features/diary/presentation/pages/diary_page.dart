@@ -230,6 +230,7 @@ class _EmotionsSectionState extends State<_EmotionsSection> {
   final ScrollController _scrollController = ScrollController();
   int _currentPage = 0;
   int _totalEmotions = 0;
+  bool _isScrollingProgrammatically = false;
 
   @override
   void initState() {
@@ -245,7 +246,7 @@ class _EmotionsSectionState extends State<_EmotionsSection> {
   }
 
   void _onScroll() {
-    if (_scrollController.hasClients && _totalEmotions > 0) {
+    if (_scrollController.hasClients && _totalEmotions > 0 && !_isScrollingProgrammatically) {
       final double itemWidth = 125.0;
       final double offset = _scrollController.offset;
       final double viewportWidth = _scrollController.position.viewportDimension;
@@ -258,6 +259,30 @@ class _EmotionsSectionState extends State<_EmotionsSection> {
           _currentPage = newPage;
         });
       }
+    }
+  }
+
+  void _scrollToEmotion(int emotionIndex) {
+    if (_scrollController.hasClients && emotionIndex >= 0 && emotionIndex < _totalEmotions) {
+      _isScrollingProgrammatically = true;
+      
+      final double itemWidth = 125.0;
+      final double viewportWidth = _scrollController.position.viewportDimension;
+      final double targetOffset = (emotionIndex * itemWidth) - (viewportWidth / 2) + (itemWidth / 2) + 16;
+      
+      final double maxOffset = _scrollController.position.maxScrollExtent;
+      final double clampedOffset = targetOffset.clamp(0.0, maxOffset);
+      
+      _scrollController.animateTo(
+        clampedOffset,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      ).then((_) {
+        setState(() {
+          _currentPage = emotionIndex;
+          _isScrollingProgrammatically = false;
+        });
+      });
     }
   }
 
@@ -328,7 +353,17 @@ class _EmotionsSectionState extends State<_EmotionsSection> {
               child: SizedBox(
                 height: 180,
                 width: double.infinity,
-                child: BlocBuilder<DiaryBloc, DiaryState>(
+                child: BlocConsumer<DiaryBloc, DiaryState>(
+                  listener: (context, state) {
+                    if (state.selectedEmotion != null && state.emotions.isNotEmpty) {
+                      final emotionIndex = state.emotions.indexOf(state.selectedEmotion!);
+                      if (emotionIndex != -1 && emotionIndex != _currentPage) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          _scrollToEmotion(emotionIndex);
+                        });
+                      }
+                    }
+                  },
                   buildWhen: (p, c) => p.emotions != c.emotions || p.selectedEmotion != c.selectedEmotion || p.status != c.status,
                   builder: (context, state) {
                     if (state.status == DiaryStatus.loading) {
@@ -393,31 +428,44 @@ class _EmotionsSectionState extends State<_EmotionsSection> {
             const SizedBox(height: 16),
             // Indicador de páginas
             if (_totalEmotions > 1)
-              Center(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: List.generate(_totalEmotions, (index) {
-                    final isActive = index == _currentPage;
-                    return AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: isActive
-                            ? AppTheme.primaryColor
-                            : Colors.grey.shade300,
-                      ),
-                    ).animate(target: isActive ? 1 : 0)
-                      .scale(
-                        begin: const Offset(0.8, 0.8),
-                        end: const Offset(1.2, 1.2),
-                        duration: 200.ms,
-                      );
-                  }),
-                ),
+              BlocBuilder<DiaryBloc, DiaryState>(
+                buildWhen: (p, c) => p.selectedEmotion != c.selectedEmotion,
+                builder: (context, state) {
+                  int selectedEmotionPage = _currentPage;
+                  if (state.selectedEmotion != null && state.emotions.isNotEmpty) {
+                    final emotionIndex = state.emotions.indexOf(state.selectedEmotion!);
+                    if (emotionIndex != -1) {
+                      selectedEmotionPage = emotionIndex;
+                    }
+                  }
+
+                  return Center(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: List.generate(_totalEmotions, (index) {
+                        final isActive = index == selectedEmotionPage;
+                        return AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                          margin: const EdgeInsets.symmetric(horizontal: 4),
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isActive
+                                ? AppTheme.primaryColor
+                                : Colors.grey.shade300,
+                          ),
+                        ).animate(target: isActive ? 1 : 0)
+                          .scale(
+                            begin: const Offset(0.8, 0.8),
+                            end: const Offset(1.2, 1.2),
+                            duration: 200.ms,
+                          );
+                      }),
+                    ),
+                  );
+                },
               ),
           ],
         ),
