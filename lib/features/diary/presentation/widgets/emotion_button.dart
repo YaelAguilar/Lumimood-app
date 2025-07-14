@@ -48,28 +48,113 @@ class _EmotionButtonState extends State<EmotionButton>
   }
 
   String _getEmojiForEmotion(String emotionName) {
-    switch (emotionName.toLowerCase()) {
+    // Convertir a lowercase y buscar coincidencias más amplias
+    final emotion = emotionName.toLowerCase().trim();
+    
+    switch (emotion) {
+      case 'felicidad':
       case 'feliz':
+      case 'alegría':
+      case 'alegre':
+      case 'contento':
+      case 'happy':
         return '😊';
-      case 'sorprendido':
-        return '😲';
-      case 'enojado':
-        return '😠';
-      case 'con miedo':
-        return '😨';
+        
+      case 'tristeza':
       case 'triste':
+      case 'melancólico':
+      case 'deprimido':
+      case 'sad':
         return '😢';
-      case 'disgustado':
-        return '🤢';
-      case 'emocionado':
-        return '🤗';
-      case 'relajado':
-        return '😌';
+        
+      case 'ansiedad':
       case 'ansioso':
+      case 'nervioso':
+      case 'preocupado':
+      case 'anxiety':
         return '😰';
+        
+      case 'enojo':
+      case 'enojado':
+      case 'ira':
+      case 'molesto':
+      case 'furioso':
+      case 'angry':
+        return '😠';
+        
+      case 'miedo':
+      case 'temor':
+      case 'asustado':
+      case 'temeroso':
+      case 'fear':
+        return '😨';
+        
+      case 'calma':
+      case 'calmado':
+      case 'tranquilo':
+      case 'sereno':
+      case 'relajado':
+      case 'paz':
+      case 'calm':
+        return '😌';
+        
+      case 'estrés':
+      case 'estresado':
+      case 'agobiado':
+      case 'abrumado':
+      case 'stress':
+        return '😵';
+        
+      case 'sorprendido':
+      case 'sorpresa':
+      case 'asombrado':
+      case 'surprised':
+        return '😲';
+        
+      case 'emocionado':
+      case 'emoción':
+      case 'entusiasmado':
+      case 'excited':
+        return '🤗';
+        
       case 'confundido':
+      case 'confusión':
+      case 'perdido':
+      case 'confused':
         return '😕';
+        
+      case 'disgustado':
+      case 'disgusto':
+      case 'asco':
+      case 'repugnancia':
+      case 'disgusted':
+        return '🤢';
+        
+      case 'aburrido':
+      case 'aburrimiento':
+      case 'tedioso':
+      case 'bored':
+        return '😴';
+        
+      case 'esperanza':
+      case 'esperanzado':
+      case 'optimista':
+      case 'hopeful':
+        return '🌟';
+        
+      case 'gratitud':
+      case 'agradecido':
+      case 'grateful':
+        return '🙏';
+        
+      case 'amor':
+      case 'cariño':
+      case 'enamorado':
+      case 'love':
+        return '😍';
+        
       default:
+        // Si no encuentra coincidencia, mostrar emoji neutral
         return '😐';
     }
   }

@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'dart:developer';
 import '../../../../core/session/session_cubit.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/usecases/forgot_password.dart';
@@ -21,8 +22,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this.forgotPassword,
     required this.sessionCubit,
   }) : super(const AuthState()) {
-    on<AuthEmailChanged>((event, emit) => emit(state.copyWith(email: event.email)));
-    on<AuthPasswordChanged>((event, emit) => emit(state.copyWith(password: event.password)));
+    on<AuthEmailChanged>((event, emit) => emit(state.copyWith(email: event.email, status: FormStatus.initial)));
+    on<AuthPasswordChanged>((event, emit) => emit(state.copyWith(password: event.password, status: FormStatus.initial)));
     on<AuthPasswordVisibilityToggled>((event, emit) => emit(state.copyWith(isPasswordVisible: !state.isPasswordVisible)));
     on<AuthNameChanged>((event, emit) => emit(state.copyWith(name: event.name)));
     on<AuthLastNameChanged>((event, emit) => emit(state.copyWith(lastName: event.lastName)));
@@ -43,30 +44,64 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
   Future<void> _onLoginWithEmail(AuthLoginWithEmailAndPasswordPressed event, Emitter<AuthState> emit) async {
+    log('🔑 AUTH BLOC: Login initiated for ${state.email} as ${state.accountType.name}');
+    
+    // Validación básica
+    if (state.email.trim().isEmpty || state.password.trim().isEmpty) {
+      emit(state.copyWith(
+        status: FormStatus.error, 
+        errorMessage: 'Por favor completa todos los campos'
+      ));
+      return;
+    }
+
     emit(state.copyWith(status: FormStatus.loading, errorMessage: null));
 
-    final result = await loginUser(LoginParams(
-      email: state.email,
-      password: state.password,
-      typeAccount: state.accountType,
-    ));
+    try {
+      final result = await loginUser(LoginParams(
+        email: state.email.trim(),
+        password: state.password.trim(),
+        typeAccount: state.accountType,
+      ));
 
-    result.fold(
-      (failure) {
-        emit(state.copyWith(status: FormStatus.error, errorMessage: failure.message));
-        // Solo resetea en caso de error después de un pequeño delay
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (!isClosed) {
-            emit(state.copyWith(status: FormStatus.initial, errorMessage: null));
-          }
-        });
-      },
-      (user) {
-        sessionCubit.showSession(user, user.token);
-        emit(state.copyWith(status: FormStatus.success));
-        // No resetea inmediatamente el estado exitoso para permitir la navegación
-      },
-    );
+      result.fold(
+        (failure) {
+          log('❌ AUTH BLOC: Login failed - ${failure.message}');
+          emit(state.copyWith(
+            status: FormStatus.error, 
+            errorMessage: failure.message
+          ));
+          
+          // Auto-reset después del error sin usar context
+          _scheduleStateReset(emit);
+        },
+        (user) {
+          log('✅ AUTH BLOC: Login successful for user ${user.id}');
+          
+          // Actualizar sesión
+          sessionCubit.showSession(user, user.token);
+          
+          // Emitir estado de éxito
+          emit(state.copyWith(status: FormStatus.success));
+          
+          log('🚀 AUTH BLOC: Session updated and success state emitted');
+        },
+      );
+    } catch (e) {
+      log('💥 AUTH BLOC: Unexpected error during login - $e');
+      emit(state.copyWith(
+        status: FormStatus.error,
+        errorMessage: 'Error inesperado: ${e.toString()}'
+      ));
+    }
+  }
+
+  void _scheduleStateReset(Emitter<AuthState> emit) {
+    Future.delayed(const Duration(seconds: 2), () {
+      if (!isClosed) {
+        emit(state.copyWith(status: FormStatus.initial, errorMessage: null));
+      }
+    });
   }
   
   Future<void> _onRegisterWithEmail(AuthRegisterWithEmailAndPasswordPressed event, Emitter<AuthState> emit) async {
@@ -74,11 +109,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
     if (state.birthDate == null) {
       emit(state.copyWith(status: FormStatus.error, errorMessage: 'Por favor, selecciona tu fecha de nacimiento.'));
-      Future.delayed(const Duration(milliseconds: 500), () {
-        if (!isClosed) {
-          emit(state.copyWith(status: FormStatus.initial, errorMessage: null));
-        }
-      });
+      _scheduleStateReset(emit);
       return;
     }
 
@@ -96,11 +127,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     result.fold(
       (failure) {
         emit(state.copyWith(status: FormStatus.error, errorMessage: failure.message));
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (!isClosed) {
-            emit(state.copyWith(status: FormStatus.initial, errorMessage: null));
-          }
-        });
+        _scheduleStateReset(emit);
       },
       (_) => emit(state.copyWith(status: FormStatus.success, successMessage: '¡Registro exitoso! Ahora puedes iniciar sesión.')),
     );
@@ -114,11 +141,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     result.fold(
       (failure) {
         emit(state.copyWith(status: FormStatus.error, errorMessage: failure.message));
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (!isClosed) {
-            emit(state.copyWith(status: FormStatus.initial, errorMessage: null));
-          }
-        });
+        _scheduleStateReset(emit);
       },
       (_) => emit(state.copyWith(status: FormStatus.success, successMessage: 'Se ha enviado un enlace de recuperación a tu correo.')),
     );

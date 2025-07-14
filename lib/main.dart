@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:lumimood/core/api/api_config.dart';
 import 'core/injection_container.dart' as di;
 import 'core/presentation/router.dart';
 import 'core/presentation/theme.dart';
@@ -11,6 +12,7 @@ void main() async {
   // Asegura que los bindings de Flutter estén inicializados
   WidgetsFlutterBinding.ensureInitialized();
   
+  ApiConfig.printConfiguration();
   // Inicializa los formatos de fecha para español
   await initializeDateFormatting('es_ES', null); 
   
