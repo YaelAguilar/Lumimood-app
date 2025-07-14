@@ -5,7 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../../core/injection_container.dart';
+import 'package:intl/intl.dart';
 import '../../../../core/presentation/theme.dart';
 import '../../../welcome/presentation/widgets/animated_background.dart';
 import '../bloc/auth_bloc.dart';
@@ -15,16 +15,20 @@ class RegisterPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => getIt<AuthBloc>(),
-      child: const _RegisterView(),
-    );
+    // Ya no creamos un nuevo BlocProvider aquí porque el AuthBloc
+    // se proporciona desde el router
+    return const _RegisterView();
   }
 }
 
-class _RegisterView extends StatelessWidget {
+class _RegisterView extends StatefulWidget {
   const _RegisterView();
 
+  @override
+  State<_RegisterView> createState() => _RegisterViewState();
+}
+
+class _RegisterViewState extends State<_RegisterView> {
   @override
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
@@ -42,14 +46,29 @@ class _RegisterView extends StatelessWidget {
                   ],
                 ),
                 backgroundColor: Colors.red.shade600,
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                margin: const EdgeInsets.all(16),
               ),
             );
         }
         if (state.status == FormStatus.success) {
-          context.goNamed('diary');
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    const Icon(Icons.check_circle, color: Colors.white, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(child: Text(state.successMessage ?? 'Operación exitosa')),
+                  ],
+                ),
+                backgroundColor: AppTheme.primaryColor,
+              ),
+            );
+          
+          if (!mounted) return;
+          context.goNamed('login');
+          // Resetea el estado después de la navegación
+          context.read<AuthBloc>().add(AuthResetState());
         }
       },
       child: GestureDetector(
@@ -142,8 +161,36 @@ class _RegisterCard extends StatelessWidget {
   }
 }
 
-class _RegisterForm extends StatelessWidget {
+class _RegisterForm extends StatefulWidget {
   const _RegisterForm();
+
+  @override
+  State<_RegisterForm> createState() => _RegisterFormState();
+}
+
+class _RegisterFormState extends State<_RegisterForm> {
+  final TextEditingController _birthDateController = TextEditingController();
+
+  Future<void> _selectDate(BuildContext context) async {
+    final bloc = context.read<AuthBloc>();
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: bloc.state.birthDate ?? DateTime(2000),
+      firstDate: DateTime(1920),
+      lastDate: DateTime.now(),
+      locale: const Locale('es', 'ES'),
+    );
+    if (picked != null) {
+      bloc.add(AuthBirthDateChanged(picked));
+      _birthDateController.text = DateFormat.yMMMMd('es_ES').format(picked);
+    }
+  }
+
+  @override
+  void dispose() {
+    _birthDateController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -193,6 +240,16 @@ class _RegisterForm extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         TextFormField(
+          controller: _birthDateController,
+          readOnly: true,
+          onTap: () => _selectDate(context),
+          decoration: InputDecoration(
+            prefixIcon: const Icon(Icons.calendar_today_outlined, color: AppTheme.primaryColor),
+            hintText: 'Fecha de nacimiento',
+          ),
+        ),
+        const SizedBox(height: 16),
+        TextFormField(
           onChanged: (value) => context.read<AuthBloc>().add(AuthPhoneNumberChanged(value)),
           decoration: InputDecoration(
             prefixIcon: const Icon(Icons.phone_outlined, color: AppTheme.primaryColor),
@@ -231,7 +288,7 @@ class _RegisterForm extends StatelessWidget {
           builder: (context, state) {
             return DropdownButtonFormField<String>(
               value: state.gender,
-              items: ['Hombre', 'Mujer', 'Prefiero no decir', 'Otro']
+              items: ['Masculino', 'Femenino', 'Otro']
                   .map((label) => DropdownMenuItem(value: label, child: Text(label)))
                   .toList(),
               onChanged: (value) {
@@ -256,8 +313,6 @@ class _RegisterForm extends StatelessWidget {
                 foregroundColor: Colors.white,
                 minimumSize: const Size(double.infinity, 56),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                elevation: 3,
-                shadowColor: AppTheme.primaryColor.withAlpha(100),
               ),
               onPressed: state.status == FormStatus.loading 
                   ? null 

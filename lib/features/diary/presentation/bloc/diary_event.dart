@@ -9,6 +9,11 @@ final class EmotionSelected extends DiaryEvent {
   EmotionSelected(this.emotion);
 }
 
+final class IntensityChanged extends DiaryEvent {
+  final double intensity;
+  IntensityChanged(this.intensity);
+}
+
 final class SaveNoteButtonPressed extends DiaryEvent {
   final String title;
   final String content;

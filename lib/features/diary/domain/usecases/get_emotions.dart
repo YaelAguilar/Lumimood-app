@@ -11,6 +11,6 @@ class GetEmotions implements UseCase<List<Emotion>, NoParams> {
 
   @override
   Future<Either<Failure, List<Emotion>>> call(NoParams params) async {
-    return await repository.getAvailableEmotions();
+    return repository.getAvailableEmotions();
   }
 }

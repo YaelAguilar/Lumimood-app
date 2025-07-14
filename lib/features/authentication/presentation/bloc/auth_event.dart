@@ -38,6 +38,11 @@ final class AuthGenderChanged extends AuthEvent {
   AuthGenderChanged(this.gender);
 }
 
+final class AuthBirthDateChanged extends AuthEvent {
+  final DateTime birthDate;
+  AuthBirthDateChanged(this.birthDate);
+}
+
 final class AuthPhoneNumberChanged extends AuthEvent {
   final String phoneNumber;
   AuthPhoneNumberChanged(this.phoneNumber);
@@ -49,3 +54,5 @@ final class AuthAccountTypeChanged extends AuthEvent {
 }
 
 final class AuthRegisterWithEmailAndPasswordPressed extends AuthEvent {}
+
+final class AuthResetState extends AuthEvent {}

@@ -1,12 +1,13 @@
+import 'dart:developer';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../../core/injection_container.dart';
 import '../../../../core/presentation/theme.dart';
 import '../../../welcome/presentation/widgets/animated_background.dart';
+import '../../domain/entities/user_entity.dart';
 import '../bloc/auth_bloc.dart';
 
 class LoginPage extends StatelessWidget {
@@ -14,10 +15,9 @@ class LoginPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => getIt<AuthBloc>(),
-      child: const _LoginView(),
-    );
+    // Ya no creamos un nuevo BlocProvider aquí porque el AuthBloc
+    // se proporciona desde el router
+    return const _LoginView();
   }
 }
 
@@ -28,7 +28,7 @@ class _LoginView extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
-        if (state.status == FormStatus.error) {
+        if (state.status == FormStatus.error && state.errorMessage != null) {
           ScaffoldMessenger.of(context)
             ..hideCurrentSnackBar()
             ..showSnackBar(
@@ -37,45 +37,42 @@ class _LoginView extends StatelessWidget {
                   children: [
                     const Icon(Icons.error_outline, color: Colors.white, size: 20),
                     const SizedBox(width: 12),
-                    Expanded(child: Text(state.errorMessage ?? 'Ocurrió un error inesperado.')),
+                    Expanded(child: Text(state.errorMessage!)),
                   ],
                 ),
                 backgroundColor: Colors.red.shade600,
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                margin: const EdgeInsets.all(16),
               ),
             );
         }
         if (state.status == FormStatus.success) {
-          // Navegar según el tipo de cuenta
-          if (state.accountType == AccountType.specialist) {
+          final authState = context.read<AuthBloc>().state;
+          if (authState.accountType == AccountType.specialist) {
             context.goNamed('specialist_home');
           } else {
             context.goNamed('diary');
           }
+          // Resetea el estado después de la navegación
+          context.read<AuthBloc>().add(AuthResetState());
         }
       },
-      child: GestureDetector(
-        onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-        child: Scaffold(
-          body: Stack(
-            children: [
-              const AnimatedBackground(),
-              Center(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                  child: _LoginCard(),
-                ),
+      // El child del listener es directamente el Scaffold
+      child: Scaffold(
+        body: Stack(
+          children: [
+            const AnimatedBackground(),
+            // --- CAMBIO CLAVE: Se eliminó el GestureDetector que envolvía el Center ---
+            Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: _LoginCard(),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
-
 
 class _LoginCard extends StatelessWidget {
   @override
@@ -83,6 +80,7 @@ class _LoginCard extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     
     return Container(
+      // ... (código del card sin cambios)
       width: double.infinity,
       constraints: const BoxConstraints(maxWidth: 400),
       padding: const EdgeInsets.all(32),
@@ -110,14 +108,7 @@ class _LoginCard extends StatelessWidget {
                 shape: BoxShape.circle,
               ),
               child: Center(
-                child: Text(
-                  'L',
-                  style: GoogleFonts.notoSans(
-                    fontSize: 40,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.primaryColor,
-                  ),
-                ),
+                child: Text('L', style: GoogleFonts.notoSans(fontSize: 40, fontWeight: FontWeight.bold, color: AppTheme.primaryColor)),
               ),
             ),
           ),
@@ -125,18 +116,13 @@ class _LoginCard extends StatelessWidget {
           Text(
             'Bienvenido de nuevo',
             textAlign: TextAlign.center,
-            style: GoogleFonts.interTight(
-              textStyle: textTheme.headlineMedium,
-              fontWeight: FontWeight.bold,
-            ),
+            style: GoogleFonts.interTight(textStyle: textTheme.headlineMedium, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           Text(
             'Ingresa tus credenciales para continuar',
             textAlign: TextAlign.center,
-            style: textTheme.bodyLarge?.copyWith(
-              color: AppTheme.primaryText.withAlpha(179),
-            ),
+            style: textTheme.bodyLarge?.copyWith(color: AppTheme.primaryText.withAlpha(179)),
           ),
           const SizedBox(height: 32),
           const _LoginForm(),
@@ -151,134 +137,105 @@ class _LoginForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    
-    return Column(
-      children: [
-        // Dropdown para tipo de cuenta
-        BlocBuilder<AuthBloc, AuthState>(
-          buildWhen: (p, c) => p.accountType != c.accountType,
-          builder: (context, state) {
-            return Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: AppTheme.alternate),
-                borderRadius: BorderRadius.circular(12),
+    return BlocBuilder<AuthBloc, AuthState>(
+      builder: (context, state) {
+        return Column(
+          children: [
+            // Dropdown
+            DropdownButtonFormField<AccountType>(
+              value: state.accountType,
+              items: const [
+                DropdownMenuItem(value: AccountType.patient, child: Text('Paciente')),
+                DropdownMenuItem(value: AccountType.specialist, child: Text('Especialista')),
+              ],
+              onChanged: (value) {
+                if (value != null) context.read<AuthBloc>().add(AuthAccountTypeChanged(value));
+              },
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.account_circle_outlined, color: AppTheme.primaryColor),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              child: DropdownButtonFormField<AccountType>(
-                value: state.accountType,
-                decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.account_circle_outlined, color: AppTheme.primaryColor),
-                  hintText: 'Tipo de cuenta',
-                  border: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                ),
-                items: const [
-                  DropdownMenuItem(
-                    value: AccountType.patient,
-                    child: Text('Paciente'),
-                  ),
-                  DropdownMenuItem(
-                    value: AccountType.specialist,
-                    child: Text('Especialista'),
-                  ),
-                ],
-                onChanged: (value) {
-                  if (value != null) {
-                    context.read<AuthBloc>().add(AuthAccountTypeChanged(value));
-                  }
-                },
+            ),
+            const SizedBox(height: 16),
+            // Email
+            TextFormField(
+              onChanged: (email) => context.read<AuthBloc>().add(AuthEmailChanged(email)),
+              keyboardType: TextInputType.emailAddress,
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.email_outlined, color: AppTheme.primaryColor),
+                hintText: 'Correo electrónico',
               ),
-            );
-          },
-        ),
-        const SizedBox(height: 16),
-        TextFormField(
-          onChanged: (email) => context.read<AuthBloc>().add(AuthEmailChanged(email)),
-          keyboardType: TextInputType.emailAddress,
-          autofillHints: const [AutofillHints.email],
-          decoration: InputDecoration(
-            prefixIcon: const Icon(Icons.email_outlined, color: AppTheme.primaryColor),
-            hintText: 'Correo electrónico',
-          ),
-        ),
-        const SizedBox(height: 16),
-        BlocBuilder<AuthBloc, AuthState>(
-          buildWhen: (previous, current) => previous.isPasswordVisible != current.isPasswordVisible,
-          builder: (context, state) {
-            return TextFormField(
+            ),
+            const SizedBox(height: 16),
+            // Password
+            TextFormField(
               onChanged: (password) => context.read<AuthBloc>().add(AuthPasswordChanged(password)),
               obscureText: !state.isPasswordVisible,
-              autofillHints: const [AutofillHints.password],
               decoration: InputDecoration(
                 prefixIcon: const Icon(Icons.lock_outline, color: AppTheme.primaryColor),
                 hintText: 'Contraseña',
                 suffixIcon: IconButton(
-                  icon: Icon(
-                    state.isPasswordVisible ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                    color: Colors.grey.shade600,
-                  ),
+                  icon: Icon(state.isPasswordVisible ? Icons.visibility_outlined : Icons.visibility_off_outlined),
                   onPressed: () => context.read<AuthBloc>().add(AuthPasswordVisibilityToggled()),
                 ),
               ),
-            );
-          },
-        ),
-        const SizedBox(height: 8),
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton(
-            onPressed: () => context.pushNamed('forgot_password'),
-            child: Text(
-              '¿Olvidaste tu contraseña?',
-              style: textTheme.bodyMedium?.copyWith(
-                color: AppTheme.primaryColor,
-                fontWeight: FontWeight.w600,
+            ),
+            const SizedBox(height: 8),
+            // Forgot Password
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: () => context.pushNamed('forgot_password'),
+                child: Text(
+                  '¿Olvidaste tu contraseña?',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppTheme.primaryColor, fontWeight: FontWeight.w600),
+                ),
               ),
             ),
-          ),
-        ),
-        const SizedBox(height: 24),
-        BlocBuilder<AuthBloc, AuthState>(
-          buildWhen: (p, c) => p.status != c.status || p.accountType != c.accountType,
-          builder: (context, state) {
-            return ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryColor,
-                foregroundColor: Colors.white,
-                minimumSize: const Size(double.infinity, 56),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                elevation: 3,
-                shadowColor: AppTheme.primaryColor.withAlpha(100),
+            const SizedBox(height: 24),
+            // Botón de Login
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryColor,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  disabledBackgroundColor: Colors.grey,
+                ),
+                onPressed: state.status == FormStatus.loading
+                    ? null
+                    : () {
+                        log('>>> LOGIN BUTTON TAPPED! Type: ${state.accountType.name}');
+                        context.read<AuthBloc>().add(AuthLoginWithEmailAndPasswordPressed());
+                      },
+                child: state.status == FormStatus.loading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : Text(
+                        'Iniciar sesión como ${state.accountType == AccountType.specialist ? "Especialista" : "Paciente"}',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
               ),
-              onPressed: state.status == FormStatus.loading 
-                ? null 
-                : () => context.read<AuthBloc>().add(AuthLoginWithEmailAndPasswordPressed()),
-              child: state.status == FormStatus.loading
-                ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
-                : Text(
-                    'Iniciar sesión como ${state.accountType == AccountType.specialist ? "Especialista" : "Paciente"}', 
-                    style: textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.bold)
+            ),
+            const SizedBox(height: 24),
+            // Register Link
+            RichText(
+              text: TextSpan(
+                style: GoogleFonts.inter(textStyle: Theme.of(context).textTheme.bodyMedium, color: AppTheme.primaryText),
+                children: [
+                  const TextSpan(text: '¿Aún no tienes una cuenta? '),
+                  TextSpan(
+                    text: 'Regístrate',
+                    style: const TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold),
+                    recognizer: TapGestureRecognizer()..onTap = () => context.pushNamed('register'),
                   ),
-            );
-          },
-        ),
-        const SizedBox(height: 24),
-        RichText(
-          textAlign: TextAlign.center,
-          text: TextSpan(
-            style: GoogleFonts.inter(textStyle: textTheme.bodyMedium, color: AppTheme.primaryText),
-            children: [
-              const TextSpan(text: '¿Aún no tienes una cuenta? '),
-              TextSpan(
-                text: 'Regístrate',
-                style: const TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold),
-                recognizer: TapGestureRecognizer()..onTap = () => context.pushNamed('register'),
+                ],
               ),
-            ],
-          ),
-        ),
-      ],
+            ),
+          ],
+        );
+      },
     );
   }
 }

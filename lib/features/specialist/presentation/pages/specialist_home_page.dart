@@ -2,17 +2,25 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/injection_container.dart';
 import '../../../../core/presentation/theme.dart';
+import '../../../../core/session/session_cubit.dart';
 import '../../../welcome/presentation/widgets/animated_background.dart';
+import '../../domain/entities/appointment_entity.dart';
+import '../bloc/specialist_bloc.dart';
 
 class SpecialistHomePage extends StatelessWidget {
   const SpecialistHomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const _SpecialistHomeView();
+    return BlocProvider(
+      create: (context) => getIt<SpecialistBloc>()..add(LoadSpecialistDashboard()),
+      child: const _SpecialistHomeView(),
+    );
   }
 }
 
@@ -28,142 +36,120 @@ class _SpecialistHomeView extends StatelessWidget {
       body: Stack(
         children: [
           const AnimatedBackground(),
-          CustomScrollView(
-            slivers: [
-              SliverAppBar(
-                pinned: true,
-                floating: true,
-                elevation: 0,
-                backgroundColor: AppTheme.scaffoldBackground.withValues(alpha: 0.8),
-                flexibleSpace: ClipRRect(
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                    child: Container(
-                      color: Colors.transparent,
+          BlocBuilder<SpecialistBloc, SpecialistState>(
+            builder: (context, state) {
+              if (state.status == SpecialistStatus.loading || state.status == SpecialistStatus.initial) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (state.status == SpecialistStatus.error) {
+                return Center(child: Text(state.errorMessage ?? 'Error al cargar el panel'));
+              }
+              return CustomScrollView(
+                slivers: [
+                  _buildSliverAppBar(context),
+                  SliverToBoxAdapter(
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 24),
+                        _WelcomeCard(appointmentCount: state.appointments.length),
+                        const SizedBox(height: 24),
+                        const _QuickActionsSection(),
+                        const SizedBox(height: 24),
+                        const _PatientsOverviewCard(),
+                        const SizedBox(height: 24),
+                        _ScheduleCard(appointments: state.appointments),
+                        const SizedBox(height: 40),
+                      ],
                     ),
                   ),
-                ),
-                leading: Builder(
-                  builder: (context) => IconButton(
-                    icon: Icon(Icons.menu_rounded, color: AppTheme.primaryText, size: 28),
-                    onPressed: () {
-                      HapticFeedback.lightImpact();
-                      Scaffold.of(context).openDrawer();
-                    },
-                  ),
-                ),
-                title: Text(
-                  'Panel Especialista',
-                  style: GoogleFonts.interTight(
-                    textStyle: Theme.of(context).textTheme.headlineSmall,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                centerTitle: true,
-                actions: [
-                  IconButton(
-                    icon: Icon(Icons.notifications_outlined, color: AppTheme.primaryText),
-                    onPressed: () {},
-                    tooltip: 'Notificaciones',
-                  ),
                 ],
-              ),
-              SliverToBoxAdapter(
-                child: Column(
-                  children: [
-                    const SizedBox(height: 24),
-                    const _WelcomeCard(),
-                    const SizedBox(height: 24),
-                    const _QuickActionsSection(),
-                    const SizedBox(height: 24),
-                    const _PatientsOverviewCard(),
-                    const SizedBox(height: 24),
-                    const _ScheduleCard(),
-                    const SizedBox(height: 40),
-                  ],
-                ),
-              ),
-            ],
+              );
+            },
           ),
         ],
       ),
     );
   }
+
+  SliverAppBar _buildSliverAppBar(BuildContext context) {
+    return SliverAppBar(
+      pinned: true,
+      floating: true,
+      elevation: 0,
+      backgroundColor: AppTheme.scaffoldBackground.withAlpha((0.8 * 255).round()),
+      flexibleSpace: ClipRRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(color: Colors.transparent),
+        ),
+      ),
+      leading: Builder(
+        builder: (context) => IconButton(
+          icon: Icon(Icons.menu_rounded, color: AppTheme.primaryText, size: 28),
+          onPressed: () {
+            HapticFeedback.lightImpact();
+            Scaffold.of(context).openDrawer();
+          },
+        ),
+      ),
+      title: Text(
+        'Panel Especialista',
+        style: GoogleFonts.interTight(
+          textStyle: Theme.of(context).textTheme.headlineSmall,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      centerTitle: true,
+      actions: [
+        IconButton(
+          icon: Icon(Icons.notifications_outlined, color: AppTheme.primaryText),
+          onPressed: () {},
+          tooltip: 'Notificaciones',
+        ),
+      ],
+    );
+  }
 }
 
 class _WelcomeCard extends StatelessWidget {
-  const _WelcomeCard();
+  final int appointmentCount;
+  const _WelcomeCard({required this.appointmentCount});
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final now = DateTime.now();
-    final timeOfDay = now.hour < 12
-        ? 'Buenos días'
-        : now.hour < 18
-            ? 'Buenas tardes'
-            : 'Buenas noches';
+    final sessionState = context.watch<SessionCubit>().state;
+    String specialistName = 'Dr. Especialista';
+    if (sessionState is AuthenticatedSessionState) {
+      specialistName = sessionState.user.name;
+    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
-        width: double.infinity,
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Colors.white,
-              Colors.white.withValues(alpha: 0.95),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          color: Colors.white,
           borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            ),
-          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.medical_services_outlined,
-                    color: AppTheme.primaryColor,
-                    size: 30,
-                  ),
-                ),
-                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        timeOfDay,
-                        style: GoogleFonts.interTight(
-                          textStyle: textTheme.titleMedium,
-                          color: AppTheme.primaryText.withValues(alpha: 0.7),
-                          fontWeight: FontWeight.w500,
-                        ),
+                        'Bienvenido de nuevo,',
+                        style: textTheme.titleMedium,
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Dr. Especialista',
+                        specialistName,
                         style: GoogleFonts.interTight(
                           textStyle: textTheme.headlineSmall,
-                          color: AppTheme.primaryText,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -176,20 +162,16 @@ class _WelcomeCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                color: AppTheme.primaryColor.withAlpha((0.1 * 255).round()),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    Icons.calendar_today_outlined,
-                    size: 16,
-                    color: AppTheme.primaryColor,
-                  ),
+                  Icon(Icons.calendar_today_outlined, size: 16, color: AppTheme.primaryColor),
                   const SizedBox(width: 8),
                   Text(
-                    'Tienes 5 citas programadas para hoy',
+                    'Tienes $appointmentCount citas programadas para hoy',
                     style: textTheme.bodyMedium?.copyWith(
                       color: AppTheme.primaryColor,
                       fontWeight: FontWeight.w600,
@@ -204,6 +186,7 @@ class _WelcomeCard extends StatelessWidget {
     );
   }
 }
+
 
 class _QuickActionsSection extends StatelessWidget {
   const _QuickActionsSection();
@@ -244,28 +227,6 @@ class _QuickActionsSection extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _QuickActionCard(
-                  icon: Icons.assignment_outlined,
-                  title: 'Ver Reportes',
-                  color: Colors.orange.shade600,
-                  onTap: () {},
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _QuickActionCard(
-                  icon: Icons.message_outlined,
-                  title: 'Mensajes',
-                  color: Colors.purple.shade600,
-                  onTap: () {},
-                ),
-              ),
-            ],
-          ),
         ],
       ),
     ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.2);
@@ -298,21 +259,13 @@ class _QuickActionCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
         ),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
+                color: color.withAlpha((0.1 * 255).round()),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: color, size: 28),
@@ -320,11 +273,7 @@ class _QuickActionCard extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               title,
-              style: GoogleFonts.inter(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: AppTheme.primaryText,
-              ),
+              style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600),
               textAlign: TextAlign.center,
             ),
           ],
@@ -348,13 +297,6 @@ class _PatientsOverviewCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            ),
-          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -362,30 +304,21 @@ class _PatientsOverviewCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(
-                  child: Text(
-                    'Resumen de Pacientes',
-                    style: GoogleFonts.interTight(
-                      textStyle: textTheme.titleLarge,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    overflow: TextOverflow.ellipsis,
+                Text(
+                  'Resumen de Pacientes',
+                  style: GoogleFonts.interTight(
+                    textStyle: textTheme.titleLarge,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(width: 8),
-                TextButton.icon(
+                TextButton(
                   onPressed: () {},
-                  icon: const Icon(Icons.arrow_forward, size: 16),
-                  label: const Text('Ver todos'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppTheme.primaryColor,
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                  ),
+                  child: const Text('Ver todos'),
                 ),
               ],
             ),
             const SizedBox(height: 20),
-            Row(
+            const Row(
               children: [
                 Expanded(
                   child: _StatCard(
@@ -395,35 +328,13 @@ class _PatientsOverviewCard extends StatelessWidget {
                     color: Colors.blue,
                   ),
                 ),
-                const SizedBox(width: 16),
+                SizedBox(width: 16),
                 Expanded(
                   child: _StatCard(
                     title: 'Nuevos este mes',
                     value: '12',
                     icon: Icons.person_add_alt_outlined,
                     color: Colors.green,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: _StatCard(
-                    title: 'En tratamiento',
-                    value: '89',
-                    icon: Icons.healing_outlined,
-                    color: Colors.orange,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _StatCard(
-                    title: 'Alta este mes',
-                    value: '8',
-                    icon: Icons.check_circle_outline,
-                    color: Colors.purple,
                   ),
                 ),
               ],
@@ -453,12 +364,8 @@ class _StatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.05),
+        color: color.withAlpha((0.05 * 255).round()),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: color.withValues(alpha: 0.2),
-          width: 1,
-        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -478,7 +385,7 @@ class _StatCard extends StatelessWidget {
             title,
             style: GoogleFonts.inter(
               fontSize: 12,
-              color: AppTheme.primaryText.withValues(alpha: 0.7),
+              color: AppTheme.primaryText.withAlpha((0.7 * 255).round()),
             ),
           ),
         ],
@@ -488,7 +395,8 @@ class _StatCard extends StatelessWidget {
 }
 
 class _ScheduleCard extends StatelessWidget {
-  const _ScheduleCard();
+  final List<AppointmentEntity> appointments;
+  const _ScheduleCard({required this.appointments});
 
   @override
   Widget build(BuildContext context) {
@@ -501,13 +409,6 @@ class _ScheduleCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            ),
-          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -520,26 +421,19 @@ class _ScheduleCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
-            _AppointmentItem(
-              time: '09:00 AM',
-              patientName: 'María García',
-              type: 'Consulta de seguimiento',
-              color: Colors.blue,
-            ),
-            const SizedBox(height: 12),
-            _AppointmentItem(
-              time: '10:30 AM',
-              patientName: 'Juan Pérez',
-              type: 'Primera consulta',
-              color: Colors.green,
-            ),
-            const SizedBox(height: 12),
-            _AppointmentItem(
-              time: '12:00 PM',
-              patientName: 'Ana Martínez',
-              type: 'Evaluación mensual',
-              color: Colors.orange,
-            ),
+            if (appointments.isEmpty)
+              const Center(child: Text('No hay citas programadas para hoy.'))
+            else
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: appointments.length,
+                itemBuilder: (context, index) {
+                  final appointment = appointments[index];
+                  return _AppointmentItem(appointment: appointment, color: Colors.blue);
+                },
+                separatorBuilder: (context, index) => const SizedBox(height: 12),
+              ),
           ],
         ),
       ),
@@ -548,29 +442,24 @@ class _ScheduleCard extends StatelessWidget {
 }
 
 class _AppointmentItem extends StatelessWidget {
-  final String time;
-  final String patientName;
-  final String type;
+  final AppointmentEntity appointment;
   final Color color;
 
   const _AppointmentItem({
-    required this.time,
-    required this.patientName,
-    required this.type,
+    required this.appointment,
     required this.color,
   });
 
   @override
   Widget build(BuildContext context) {
+    // Aquí podrías hacer una llamada para obtener el nombre del paciente, por ahora usamos el ID
+    final String patientName = 'Paciente #${appointment.patientId.substring(0, 4)}';
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppTheme.scaffoldBackground,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppTheme.alternate,
-          width: 1,
-        ),
       ),
       child: Row(
         children: [
@@ -592,7 +481,7 @@ class _AppointmentItem extends StatelessWidget {
                     Icon(Icons.access_time, size: 16, color: color),
                     const SizedBox(width: 4),
                     Text(
-                      time,
+                      appointment.time,
                       style: GoogleFonts.inter(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -607,15 +496,14 @@ class _AppointmentItem extends StatelessWidget {
                   style: GoogleFonts.inter(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: AppTheme.primaryText,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  type,
+                  appointment.reason,
                   style: GoogleFonts.inter(
                     fontSize: 12,
-                    color: AppTheme.primaryText.withValues(alpha: 0.6),
+                    color: AppTheme.primaryText.withAlpha((0.6 * 255).round()),
                   ),
                 ),
               ],
@@ -624,7 +512,7 @@ class _AppointmentItem extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.chevron_right),
             onPressed: () {},
-            color: AppTheme.primaryText.withValues(alpha: 0.5),
+            color: AppTheme.primaryText.withAlpha((0.5 * 255).round()),
           ),
         ],
       ),
@@ -674,13 +562,6 @@ class _SpecialistDrawer extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 20,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
                   ),
                   child: Center(
                     child: Icon(
@@ -697,13 +578,6 @@ class _SpecialistDrawer extends StatelessWidget {
                     textStyle: textTheme.titleLarge,
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  'Psicología Clínica',
-                  style: GoogleFonts.interTight(
-                    textStyle: textTheme.bodyMedium,
-                    color: Colors.white.withValues(alpha: 0.9),
                   ),
                 ),
               ],
@@ -733,20 +607,6 @@ class _SpecialistDrawer extends StatelessWidget {
                     Navigator.of(context).pop();
                   },
                 ),
-                _DrawerItem(
-                  icon: Icons.assignment_outlined,
-                  title: 'Historiales',
-                  onTap: () {
-                    Navigator.of(context).pop();
-                  },
-                ),
-                _DrawerItem(
-                  icon: Icons.analytics_outlined,
-                  title: 'Reportes',
-                  onTap: () {
-                    Navigator.of(context).pop();
-                  },
-                ),
                 const Divider(height: 32),
                 _DrawerItem(
                   icon: Icons.settings_outlined,
@@ -759,6 +619,7 @@ class _SpecialistDrawer extends StatelessWidget {
                   icon: Icons.logout_outlined,
                   title: 'Cerrar sesión',
                   onTap: () {
+                    context.read<SessionCubit>().signOut();
                     context.goNamed('welcome');
                   },
                 ),
@@ -791,7 +652,7 @@ class _DrawerItem extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: isSelected ? Colors.blue.withValues(alpha: 0.1) : Colors.transparent,
+        color: isSelected ? Colors.blue.withAlpha((0.1 * 255).round()) : Colors.transparent,
         borderRadius: BorderRadius.circular(16),
       ),
       child: ListTile(

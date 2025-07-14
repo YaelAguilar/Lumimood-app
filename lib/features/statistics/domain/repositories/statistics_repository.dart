@@ -3,5 +3,5 @@ import '../../../../core/error/failures.dart';
 import '../entities/statistics.dart';
 
 abstract class StatisticsRepository {
-  Future<Either<Failure, Statistics>> getStatisticsData();
+  Future<Either<Failure, Statistics>> getStatisticsData(String patientId, DateTime date);
 }

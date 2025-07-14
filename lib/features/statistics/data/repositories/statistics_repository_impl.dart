@@ -11,12 +11,12 @@ class StatisticsRepositoryImpl implements StatisticsRepository {
   StatisticsRepositoryImpl({required this.remoteDataSource});
 
   @override
-  Future<Either<Failure, Statistics>> getStatisticsData() async {
+  Future<Either<Failure, Statistics>> getStatisticsData(String patientId, DateTime date) async {
     try {
-      final remoteStatistics = await remoteDataSource.getStatisticsData();
+      final remoteStatistics = await remoteDataSource.getStatisticsData(patientId, date);
       return Right(remoteStatistics);
-    } on ServerException {
-      return Left(ServerFailure());
+    } on ServerException catch(e) {
+      return Left(ServerFailure(e.message));
     }
   }
 }

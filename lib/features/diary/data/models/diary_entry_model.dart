@@ -1,39 +1,32 @@
-import 'package:flutter/material.dart';
 import '../../domain/entities/diary_entry.dart';
-import 'emotion_model.dart';
+// import 'emotion_model.dart'; // -> Eliminado
 
 class DiaryEntryModel extends DiaryEntry {
   const DiaryEntryModel({
     required super.id,
+    required super.idPatient,
     required super.title,
     required super.content,
     required super.date,
     super.emotion,
+    super.intensity,
   });
 
-  factory DiaryEntryModel.fromJson(Map<String, dynamic> json) {
-    return DiaryEntryModel(
-      id: json['id'],
-      title: json['title'],
-      content: json['content'],
-      date: DateTime.parse(json['date']),
-      emotion: json['emotion'] != null 
-          ? EmotionModel(
-              name: json['emotion']['name'], 
-              color: Color(json['emotion']['color']) 
-            ) 
-          : null,
-    );
-  }
+  // La API no devuelve una entrada combinada, así que no necesitamos fromJson por ahora.
 
-  Map<String, dynamic> toJson() {
+  Map<String, dynamic> toNoteJson() {
     return {
-      'id': id,
+      'idPatient': idPatient,
       'title': title,
       'content': content,
-      'date': date.toIso8601String(),
-      // ignore: deprecated_member_use
-      'emotion': emotion != null ? {'name': emotion!.name, 'color': emotion!.color.value} : null,
+    };
+  }
+
+  Map<String, dynamic> toEmotionJson() {
+    return {
+      'idPatient': idPatient,
+      'emotionName': emotion!.name.toLowerCase(),
+      'intensity': intensity,
     };
   }
 }

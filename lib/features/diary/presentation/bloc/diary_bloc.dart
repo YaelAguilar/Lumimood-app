@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/session/session_cubit.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../../domain/entities/emotion.dart';
 import '../../domain/usecases/get_emotions.dart';
@@ -11,13 +12,16 @@ part 'diary_state.dart';
 class DiaryBloc extends Bloc<DiaryEvent, DiaryState> {
   final GetEmotions getEmotions;
   final SaveDiaryEntry saveDiaryEntry;
+  final SessionCubit sessionCubit;
 
   DiaryBloc({
     required this.getEmotions,
     required this.saveDiaryEntry,
+    required this.sessionCubit,
   }) : super(const DiaryState()) {
     on<LoadInitialData>(_onLoadInitialData);
     on<EmotionSelected>(_onEmotionSelected);
+    on<IntensityChanged>(_onIntensityChanged);
     on<SaveNoteButtonPressed>(_onSaveNoteButtonPressed);
 
     add(LoadInitialData());
@@ -37,22 +41,35 @@ class DiaryBloc extends Bloc<DiaryEvent, DiaryState> {
     emit(state.copyWith(selectedEmotion: event.emotion));
   }
 
+  void _onIntensityChanged(IntensityChanged event, Emitter<DiaryState> emit) {
+    emit(state.copyWith(intensity: event.intensity));
+  }
+
   Future<void> _onSaveNoteButtonPressed(SaveNoteButtonPressed event, Emitter<DiaryState> emit) async {
+    if (sessionCubit.state is! AuthenticatedSessionState) {
+      emit(state.copyWith(isNoteSaved: false, errorMessage: 'Usuario no autenticado.'));
+      return;
+    }
+
+    final patientId = (sessionCubit.state as AuthenticatedSessionState).user.id;
+
     final result = await saveDiaryEntry(
       SaveDiaryParams(
+        patientId: patientId,
         title: event.title,
         content: event.content,
         emotion: state.selectedEmotion,
+        intensity: state.intensity.round(),
       ),
     );
 
     result.fold(
       (failure) {
-        emit(state.copyWith(isNoteSaved: false));
+        emit(state.copyWith(isNoteSaved: false, errorMessage: failure.message));
       },
       (_) {
         emit(state.copyWith(isNoteSaved: true));
-        emit(state.copyWith(isNoteSaved: false));
+        emit(state.copyWith(isNoteSaved: false)); // Reset flag
       },
     );
   }

@@ -3,6 +3,7 @@ import '../../domain/entities/note.dart';
 class NoteModel extends Note {
   const NoteModel({
     required super.id,
+    required super.patientId,
     required super.title,
     required super.content,
     required super.date,
@@ -10,19 +11,19 @@ class NoteModel extends Note {
 
   factory NoteModel.fromJson(Map<String, dynamic> json) {
     return NoteModel(
-      id: json['id'],
+      id: json['idRecNote'],
+      patientId: json['idPatient'],
       title: json['title'],
       content: json['content'],
-      date: DateTime.parse(json['date']),
+      date: DateTime.parse(json['createdAt']),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
+      'idPatient': patientId,
       'title': title,
       'content': content,
-      'date': date.toIso8601String(),
     };
   }
 }

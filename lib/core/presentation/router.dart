@@ -1,4 +1,7 @@
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/injection_container.dart';
+import '../../features/authentication/presentation/bloc/auth_bloc.dart';
 import '../../features/authentication/presentation/pages/forgot_password.dart';
 import '../../features/authentication/presentation/pages/login_page.dart';
 import '../../features/authentication/presentation/pages/register_page.dart';
@@ -24,12 +27,25 @@ class AppRouter {
       GoRoute(
         path: '/login',
         name: 'login',
-        builder: (context, state) => const LoginPage(),
+        builder: (context, state) {
+          // Proveemos el AuthBloc aquí para que esté disponible en LoginPage
+          // y sus hijos, asegurando que la instancia no se reinicie.
+          return BlocProvider(
+            create: (context) => getIt<AuthBloc>(),
+            child: const LoginPage(),
+          );
+        },
       ),
       GoRoute(
         path: '/register',
         name: 'register',
-        builder: (context, state) => const RegisterPage(),
+        builder: (context, state) {
+          // Hacemos lo mismo para la página de registro
+          return BlocProvider(
+            create: (context) => getIt<AuthBloc>(),
+            child: const RegisterPage(),
+          );
+        },
       ),
       GoRoute(
         path: '/diary',
@@ -63,13 +79,20 @@ class AppRouter {
           if (state.extra is Note) {
             return NoteDetailPage(note: state.extra as Note);
           }
-          return const NotesPage();
+          // Redirige a la página de notas si no se pasan los datos correctos.
+          return const NotesPage(); 
         },
       ),
       GoRoute(
         path: '/forgot-password',
         name: 'forgot_password',
-        builder: (context, state) => const ForgotPasswordPage(),
+        builder: (context, state) {
+          // ForgotPassword también podría necesitar su propio AuthBloc
+          return BlocProvider(
+            create: (context) => getIt<AuthBloc>(),
+            child: const ForgotPasswordPage(),
+          );
+        },
       ),
       GoRoute(
         path: '/specialist-home',

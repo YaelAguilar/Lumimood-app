@@ -3,37 +3,42 @@ import '../../../../core/error/exceptions.dart';
 import '../../../../core/error/failures.dart';
 import '../../domain/entities/note.dart';
 import '../../domain/repositories/notes_repository.dart';
-import '../datasources/notes_local_datasource.dart';
+import '../datasources/notes_remote_datasource.dart';
 import '../models/note_model.dart';
 
 class NotesRepositoryImpl implements NotesRepository {
-  final NotesLocalDataSource localDataSource;
+  final NotesRemoteDataSource remoteDataSource;
 
-  NotesRepositoryImpl({required this.localDataSource});
+  NotesRepositoryImpl({required this.remoteDataSource});
 
   @override
-  Future<Either<Failure, List<Note>>> getNotes() async {
+  Future<Either<Failure, List<Note>>> getNotes(String patientId) async {
     try {
-      final localNotes = await localDataSource.getNotes();
-      return Right(localNotes);
-    } on CacheException {
-      return Left(CacheFailure());
+      final remoteNotes = await remoteDataSource.getNotes(patientId);
+      return Right(remoteNotes);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
     }
   }
 
   @override
-  Future<Either<Failure, void>> addNote({required String title, required String content}) async {
+  Future<Either<Failure, void>> addNote({
+    required String patientId,
+    required String title,
+    required String content,
+  }) async {
     try {
       final newNote = NoteModel(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        id: '', // La API genera el ID
+        patientId: patientId,
         title: title,
         content: content,
-        date: DateTime.now(),
+        date: DateTime.now(), // La API asigna la fecha
       );
-      await localDataSource.addNote(newNote);
+      await remoteDataSource.addNote(newNote);
       return const Right(null);
-    } on CacheException {
-      return Left(CacheFailure());
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
     }
   }
 }

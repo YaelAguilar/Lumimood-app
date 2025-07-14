@@ -11,16 +11,25 @@ class AddNote implements UseCase<void, AddNoteParams> {
 
   @override
   Future<Either<Failure, void>> call(AddNoteParams params) async {
-    return await repository.addNote(title: params.title, content: params.content);
+    return await repository.addNote(
+      patientId: params.patientId,
+      title: params.title,
+      content: params.content,
+    );
   }
 }
 
 class AddNoteParams extends Equatable {
+  final String patientId;
   final String title;
   final String content;
 
-  const AddNoteParams({required this.title, required this.content});
+  const AddNoteParams({
+    required this.patientId,
+    required this.title,
+    required this.content,
+  });
 
   @override
-  List<Object?> get props => [title, content];
+  List<Object?> get props => [patientId, title, content];
 }

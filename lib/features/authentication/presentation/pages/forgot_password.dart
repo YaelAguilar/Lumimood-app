@@ -3,7 +3,6 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../../core/injection_container.dart';
 import '../../../../core/presentation/theme.dart';
 import '../../../welcome/presentation/widgets/animated_background.dart';
 import '../bloc/auth_bloc.dart';
@@ -13,10 +12,9 @@ class ForgotPasswordPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => getIt<AuthBloc>(),
-      child: const _ForgotPasswordView(),
-    );
+    // Ya no creamos un nuevo BlocProvider aquí porque el AuthBloc
+    // se proporciona desde el router
+    return const _ForgotPasswordView();
   }
 }
 
@@ -66,6 +64,8 @@ class _ForgotPasswordView extends StatelessWidget {
             );
           if (context.canPop()) {
             context.pop();
+            // Resetea el estado después de la navegación
+            context.read<AuthBloc>().add(AuthResetState());
           }
         }
       },

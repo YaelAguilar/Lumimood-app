@@ -16,8 +16,8 @@ class TasksRepositoryImpl implements TasksRepository {
     try {
       final localTasks = await localDataSource.getTasks();
       return Right(localTasks);
-    } on CacheException {
-      return Left(CacheFailure());
+    } on CacheException catch (e) {
+      return Left(CacheFailure(e.message)); // CORREGIDO
     }
   }
   
@@ -30,8 +30,8 @@ class TasksRepositoryImpl implements TasksRepository {
       );
       await localDataSource.addTask(newTask);
       return const Right(null);
-    } on CacheException {
-      return Left(CacheFailure());
+    } on CacheException catch (e) {
+      return Left(CacheFailure(e.message)); // CORREGIDO
     }
   }
 
@@ -42,7 +42,7 @@ class TasksRepositoryImpl implements TasksRepository {
       final taskIndex = tasks.indexWhere((task) => task.id == taskId);
 
       if (taskIndex == -1) {
-        return Left(CacheFailure());
+        return const Left(CacheFailure("Task not found")); // CORREGIDO
       }
       
       final taskToUpdate = tasks[taskIndex];
@@ -50,8 +50,8 @@ class TasksRepositoryImpl implements TasksRepository {
       
       await localDataSource.updateTask(updatedTask);
       return const Right(null);
-    } on CacheException {
-      return Left(CacheFailure());
+    } on CacheException catch (e) {
+      return Left(CacheFailure(e.message)); // CORREGIDO
     }
   }
 }

@@ -28,7 +28,7 @@ class TasksLocalDataSourceImpl implements TasksLocalDataSource {
   Future<void> addTask(TaskModel task) async {
     log('DATA SOURCE: Adding new task with title: ${task.title}');
     if (task.title.isEmpty) {
-      throw CacheException();
+      throw CacheException("Task title cannot be empty"); // CORREGIDO
     }
     await Future.delayed(const Duration(milliseconds: 200));
     _cachedTasks.add(task);
@@ -44,7 +44,7 @@ class TasksLocalDataSourceImpl implements TasksLocalDataSource {
       _cachedTasks[index] = task;
       return Future.value();
     } else {
-      throw CacheException();
+      throw CacheException("Task with id ${task.id} not found"); // CORREGIDO
     }
   }
 }

@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/injection_container.dart';
 import '../../../../core/presentation/theme.dart';
+import '../../../../core/session/session_cubit.dart';
 import '../../../welcome/presentation/widgets/animated_background.dart';
 import '../bloc/diary_bloc.dart';
 import '../widgets/emotion_button.dart';
@@ -35,6 +36,23 @@ class _DiaryViewState extends State<_DiaryView> {
   Widget build(BuildContext context) {
     return BlocListener<DiaryBloc, DiaryState>(
       listener: (context, state) {
+        final errorMessage = state.errorMessage;
+        if (errorMessage != null && errorMessage.isNotEmpty) {
+           ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    const Icon(Icons.error_outline, color: Colors.white, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(child: Text(errorMessage)),
+                  ],
+                ),
+                backgroundColor: Colors.red.shade600,
+              ),
+            );
+        }
         if (state.isNoteSaved) {
           HapticFeedback.lightImpact();
           ScaffoldMessenger.of(context)
@@ -71,7 +89,7 @@ class _DiaryViewState extends State<_DiaryView> {
                     pinned: true,
                     floating: true,
                     elevation: 0,
-                    backgroundColor: AppTheme.scaffoldBackground.withValues(alpha: 0.8),
+                    backgroundColor: AppTheme.scaffoldBackground.withAlpha((0.8 * 255).round()),
                     flexibleSpace: ClipRRect(
                       child: BackdropFilter(
                         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
@@ -156,7 +174,7 @@ class _WelcomeCard extends StatelessWidget {
           gradient: LinearGradient(
             colors: [
               Colors.white,
-              Colors.white.withValues(alpha: 0.95),
+              Colors.white.withAlpha((0.95 * 255).round()),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -164,12 +182,12 @@ class _WelcomeCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
+              color: Colors.black.withAlpha((0.06 * 255).round()),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
             BoxShadow(
-              color: AppTheme.primaryColor.withValues(alpha: 0.1),
+              color: AppTheme.primaryColor.withAlpha((0.1 * 255).round()),
               blurRadius: 40,
               offset: const Offset(0, 20),
             ),
@@ -189,7 +207,7 @@ class _WelcomeCard extends StatelessWidget {
                   timeOfDay,
                   style: GoogleFonts.interTight(
                     textStyle: textTheme.titleMedium,
-                    color: AppTheme.primaryText.withValues(alpha: 0.7),
+                    color: AppTheme.primaryText.withAlpha((0.7 * 255).round()),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -209,7 +227,7 @@ class _WelcomeCard extends StatelessWidget {
               'Comparte tus emociones y pensamientos del día',
               style: GoogleFonts.interTight(
                 textStyle: textTheme.bodyMedium,
-                color: AppTheme.primaryText.withValues(alpha: 0.6),
+                color: AppTheme.primaryText.withAlpha((0.6 * 255).round()),
               ),
             ),
           ],
@@ -299,7 +317,7 @@ class _EmotionsSectionState extends State<_EmotionsSection> {
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
+              color: Colors.black.withAlpha((0.06 * 255).round()),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
@@ -315,8 +333,8 @@ class _EmotionsSectionState extends State<_EmotionsSection> {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        AppTheme.primaryColor.withValues(alpha: 0.1),
-                        AppTheme.primaryColor.withValues(alpha: 0.05),
+                        AppTheme.primaryColor.withAlpha((0.1 * 255).round()),
+                        AppTheme.primaryColor.withAlpha((0.05 * 255).round()),
                       ],
                     ),
                     borderRadius: BorderRadius.circular(16),
@@ -339,7 +357,7 @@ class _EmotionsSectionState extends State<_EmotionsSection> {
                         'Desliza para ver más opciones',
                         style: GoogleFonts.interTight(
                           textStyle: textTheme.bodySmall,
-                          color: AppTheme.primaryText.withValues(alpha: 0.6),
+                          color: AppTheme.primaryText.withAlpha((0.6 * 255).round()),
                         ),
                       ),
                     ],
@@ -426,7 +444,6 @@ class _EmotionsSectionState extends State<_EmotionsSection> {
               ),
             ),
             const SizedBox(height: 16),
-            // Indicador de páginas
             if (_totalEmotions > 1)
               BlocBuilder<DiaryBloc, DiaryState>(
                 buildWhen: (p, c) => p.selectedEmotion != c.selectedEmotion,
@@ -490,7 +507,7 @@ class _NoteSection extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
+              color: Colors.black.withAlpha((0.06 * 255).round()),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
@@ -506,8 +523,8 @@ class _NoteSection extends StatelessWidget {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        AppTheme.primaryColor.withValues(alpha: 0.1),
-                        AppTheme.primaryColor.withValues(alpha: 0.05),
+                        AppTheme.primaryColor.withAlpha((0.1 * 255).round()),
+                        AppTheme.primaryColor.withAlpha((0.05 * 255).round()),
                       ],
                     ),
                     borderRadius: BorderRadius.circular(16),
@@ -530,7 +547,7 @@ class _NoteSection extends StatelessWidget {
                         'Comparte tus pensamientos y experiencias',
                         style: GoogleFonts.interTight(
                           textStyle: textTheme.bodySmall,
-                          color: AppTheme.primaryText.withValues(alpha: 0.6),
+                          color: AppTheme.primaryText.withAlpha((0.6 * 255).round()),
                         ),
                       ),
                     ],
@@ -578,7 +595,7 @@ class _NoteCardState extends State<_NoteCard> {
     final textTheme = Theme.of(context).textTheme;
     
     return BlocBuilder<DiaryBloc, DiaryState>(
-      buildWhen: (p, c) => p.selectedEmotion != c.selectedEmotion,
+      buildWhen: (p, c) => p.selectedEmotion != c.selectedEmotion || p.intensity != c.intensity,
       builder: (context, state) {
         return AnimatedContainer(
           duration: const Duration(milliseconds: 500),
@@ -587,15 +604,15 @@ class _NoteCardState extends State<_NoteCard> {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                state.selectedEmotion?.color.withValues(alpha: 0.05) ?? Colors.grey.shade50,
-                state.selectedEmotion?.color.withValues(alpha: 0.02) ?? Colors.grey.shade100,
+                state.selectedEmotion?.color.withAlpha((0.05 * 255).round()) ?? Colors.grey.shade50,
+                state.selectedEmotion?.color.withAlpha((0.02 * 255).round()) ?? Colors.grey.shade100,
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: state.selectedEmotion?.color.withValues(alpha: 0.2) ?? AppTheme.alternate,
+              color: state.selectedEmotion?.color.withAlpha((0.2 * 255).round()) ?? AppTheme.alternate,
               width: 1.5,
             ),
           ),
@@ -612,7 +629,6 @@ class _NoteCardState extends State<_NoteCard> {
                     Icons.title_rounded, 
                     color: state.selectedEmotion?.color ?? AppTheme.primaryColor,
                   ),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 16),
                 ),
                 style: textTheme.bodyLarge?.copyWith(
                   fontWeight: FontWeight.w600,
@@ -636,7 +652,6 @@ class _NoteCardState extends State<_NoteCard> {
                     hintStyle: textTheme.bodyMedium?.copyWith(color: Colors.grey.shade400),
                     border: InputBorder.none,
                     alignLabelWithHint: true,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 16),
                   ),
                   style: textTheme.bodyMedium?.copyWith(
                     color: AppTheme.primaryText,
@@ -652,7 +667,28 @@ class _NoteCardState extends State<_NoteCard> {
                   },
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
+              if (state.selectedEmotion != null) ...[
+                Text(
+                  'Intensidad: ${state.intensity.round()}',
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: state.selectedEmotion?.color,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Slider(
+                  value: state.intensity,
+                  min: 1,
+                  max: 10,
+                  divisions: 9,
+                  activeColor: state.selectedEmotion?.color,
+                  label: state.intensity.round().toString(),
+                  onChanged: (value) {
+                    context.read<DiaryBloc>().add(IntensityChanged(value));
+                  },
+                ),
+                const SizedBox(height: 16),
+              ],
               BlocListener<DiaryBloc, DiaryState>(
                 listener: (context, state) {
                   if (state.isNoteSaved) {
@@ -664,14 +700,14 @@ class _NoteCardState extends State<_NoteCard> {
                 },
                 child: SizedBox(
                   width: double.infinity,
-                  child: ElevatedButton(
+                  child: ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: state.selectedEmotion?.color ?? AppTheme.primaryColor,
                       foregroundColor: Colors.white,
                       minimumSize: const Size(double.infinity, 56),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       elevation: 8,
-                      shadowColor: (state.selectedEmotion?.color ?? AppTheme.primaryColor).withValues(alpha: 0.4),
+                      shadowColor: (state.selectedEmotion?.color ?? AppTheme.primaryColor).withAlpha((0.4 * 255).round()),
                     ),
                     onPressed: () {
                       if (_titleController.text.trim().isEmpty && _contentController.text.trim().isEmpty) {
@@ -690,19 +726,13 @@ class _NoteCardState extends State<_NoteCard> {
                             content: _contentController.text,
                           ));
                     },
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.save_rounded, color: Colors.white, size: 20),
-                        const SizedBox(width: 12),
-                        Text(
-                          'Guardar Nota',
-                          style: textTheme.titleMedium?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
+                    icon: const Icon(Icons.save_rounded),
+                    label: Text(
+                      'Guardar Nota',
+                      style: textTheme.titleMedium?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
@@ -761,7 +791,7 @@ class _DiaryDrawer extends StatelessWidget {
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
+                          color: Colors.black.withAlpha((0.1 * 255).round()),
                           blurRadius: 20,
                           offset: const Offset(0, 8),
                         ),
@@ -792,7 +822,7 @@ class _DiaryDrawer extends StatelessWidget {
                   'Tu diario emocional',
                   style: GoogleFonts.interTight(
                     textStyle: textTheme.bodyMedium,
-                    color: AppTheme.primaryText.withValues(alpha: 0.7),
+                    color: AppTheme.primaryText.withAlpha((0.7 * 255).round()),
                   ),
                 ),
               ],
@@ -844,6 +874,7 @@ class _DiaryDrawer extends StatelessWidget {
                   icon: Icons.logout_outlined,
                   title: 'Cerrar sesión',
                   onTap: () {
+                    context.read<SessionCubit>().signOut();
                     context.goNamed('welcome');
                   },
                 ),
@@ -876,7 +907,7 @@ class _DrawerItem extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: isSelected ? AppTheme.primaryColor.withValues(alpha: 0.1) : Colors.transparent,
+        color: isSelected ? AppTheme.primaryColor.withAlpha((0.1 * 255).round()) : Colors.transparent,
         borderRadius: BorderRadius.circular(16),
       ),
       child: ListTile(
