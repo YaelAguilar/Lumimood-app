@@ -7,6 +7,7 @@ import '../../features/notes/domain/entities/note.dart';
 import '../../features/notes/presentation/pages/create_note_page.dart';
 import '../../features/notes/presentation/pages/note_detail_page.dart';
 import '../../features/notes/presentation/pages/notes_page.dart';
+import '../../features/specialist/presentation/pages/specialist_home_page.dart';
 import '../../features/statistics/presentation/pages/statistics_page.dart';
 import '../../features/tasks/presentation/pages/tasks_page.dart';
 import '../../features/welcome/presentation/pages/welcome_page.dart';
@@ -69,6 +70,11 @@ class AppRouter {
         path: '/forgot-password',
         name: 'forgot_password',
         builder: (context, state) => const ForgotPasswordPage(),
+      ),
+      GoRoute(
+        path: '/specialist-home',
+        name: 'specialist_home',
+        builder: (context, state) => const SpecialistHomePage(),
       ),
     ],
   );

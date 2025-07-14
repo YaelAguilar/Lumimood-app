@@ -24,6 +24,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthLastNameChanged>((event, emit) => emit(state.copyWith(lastName: event.lastName)));
     on<AuthSecondLastNameChanged>((event, emit) => emit(state.copyWith(secondLastName: event.secondLastName)));
     on<AuthGenderChanged>((event, emit) => emit(state.copyWith(gender: event.gender)));
+    on<AuthPhoneNumberChanged>((event, emit) => emit(state.copyWith(phoneNumber: event.phoneNumber)));
+    on<AuthAccountTypeChanged>((event, emit) => emit(state.copyWith(accountType: event.accountType)));
     
     on<AuthLoginWithEmailAndPasswordPressed>(_onLoginWithEmail);
     on<AuthRegisterWithEmailAndPasswordPressed>(_onRegisterWithEmail);
@@ -44,6 +46,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   
   Future<void> _onRegisterWithEmail(AuthRegisterWithEmailAndPasswordPressed event, Emitter<AuthState> emit) async {
     emit(state.copyWith(status: FormStatus.loading, errorMessage: null));
+
+    // Validación del número de teléfono
+    if (state.phoneNumber.isEmpty || state.phoneNumber.length < 10) {
+      emit(state.copyWith(
+        status: FormStatus.error, 
+        errorMessage: 'Por favor, ingresa un número de teléfono válido (mínimo 10 dígitos).'
+      ));
+      emit(state.copyWith(status: FormStatus.initial, errorMessage: null));
+      return;
+    }
 
     final result = await registerUser(RegisterParams(
       name: state.name,

@@ -192,6 +192,19 @@ class _RegisterForm extends StatelessWidget {
           keyboardType: TextInputType.emailAddress,
         ),
         const SizedBox(height: 16),
+        TextFormField(
+          onChanged: (value) => context.read<AuthBloc>().add(AuthPhoneNumberChanged(value)),
+          decoration: InputDecoration(
+            prefixIcon: const Icon(Icons.phone_outlined, color: AppTheme.primaryColor),
+            hintText: 'Número de teléfono',
+          ),
+          keyboardType: TextInputType.phone,
+          inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly,
+            LengthLimitingTextInputFormatter(10),
+          ],
+        ),
+        const SizedBox(height: 16),
         BlocBuilder<AuthBloc, AuthState>(
           buildWhen: (p, c) => p.isPasswordVisible != c.isPasswordVisible,
           builder: (context, state) {

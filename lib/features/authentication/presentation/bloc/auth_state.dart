@@ -1,6 +1,7 @@
 part of 'auth_bloc.dart';
 
 enum FormStatus { initial, loading, success, error }
+enum AccountType { patient, specialist }
 
 class AuthState extends Equatable {
   final String email;
@@ -13,6 +14,8 @@ class AuthState extends Equatable {
   final String lastName;
   final String secondLastName;
   final String gender;
+  final String phoneNumber;
+  final AccountType accountType;
 
   const AuthState({
     this.email = '',
@@ -24,6 +27,8 @@ class AuthState extends Equatable {
     this.lastName = '',
     this.secondLastName = '',
     this.gender = 'Hombre',
+    this.phoneNumber = '',
+    this.accountType = AccountType.patient,
   });
 
   AuthState copyWith({
@@ -36,6 +41,8 @@ class AuthState extends Equatable {
     String? lastName,
     String? secondLastName,
     String? gender,
+    String? phoneNumber,
+    AccountType? accountType,
   }) {
     return AuthState(
       email: email ?? this.email,
@@ -47,6 +54,8 @@ class AuthState extends Equatable {
       lastName: lastName ?? this.lastName,
       secondLastName: secondLastName ?? this.secondLastName,
       gender: gender ?? this.gender,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
+      accountType: accountType ?? this.accountType,
     );
   }
 
@@ -60,6 +69,8 @@ class AuthState extends Equatable {
         name,
         lastName,
         secondLastName,
-        gender
+        gender,
+        phoneNumber,
+        accountType,
       ];
 }

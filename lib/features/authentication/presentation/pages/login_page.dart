@@ -48,7 +48,12 @@ class _LoginView extends StatelessWidget {
             );
         }
         if (state.status == FormStatus.success) {
-          context.goNamed('diary');
+          // Navegar según el tipo de cuenta
+          if (state.accountType == AccountType.specialist) {
+            context.goNamed('specialist_home');
+          } else {
+            context.goNamed('diary');
+          }
         }
       },
       child: GestureDetector(
@@ -150,6 +155,44 @@ class _LoginForm extends StatelessWidget {
     
     return Column(
       children: [
+        // Dropdown para tipo de cuenta
+        BlocBuilder<AuthBloc, AuthState>(
+          buildWhen: (p, c) => p.accountType != c.accountType,
+          builder: (context, state) {
+            return Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: AppTheme.alternate),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: DropdownButtonFormField<AccountType>(
+                value: state.accountType,
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.account_circle_outlined, color: AppTheme.primaryColor),
+                  hintText: 'Tipo de cuenta',
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                ),
+                items: const [
+                  DropdownMenuItem(
+                    value: AccountType.patient,
+                    child: Text('Paciente'),
+                  ),
+                  DropdownMenuItem(
+                    value: AccountType.specialist,
+                    child: Text('Especialista'),
+                  ),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    context.read<AuthBloc>().add(AuthAccountTypeChanged(value));
+                  }
+                },
+              ),
+            );
+          },
+        ),
+        const SizedBox(height: 16),
         TextFormField(
           onChanged: (email) => context.read<AuthBloc>().add(AuthEmailChanged(email)),
           keyboardType: TextInputType.emailAddress,
@@ -197,7 +240,7 @@ class _LoginForm extends StatelessWidget {
         ),
         const SizedBox(height: 24),
         BlocBuilder<AuthBloc, AuthState>(
-          buildWhen: (p, c) => p.status != c.status,
+          buildWhen: (p, c) => p.status != c.status || p.accountType != c.accountType,
           builder: (context, state) {
             return ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -213,7 +256,10 @@ class _LoginForm extends StatelessWidget {
                 : () => context.read<AuthBloc>().add(AuthLoginWithEmailAndPasswordPressed()),
               child: state.status == FormStatus.loading
                 ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
-                : Text('Iniciar sesión', style: textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
+                : Text(
+                    'Iniciar sesión como ${state.accountType == AccountType.specialist ? "Especialista" : "Paciente"}', 
+                    style: textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.bold)
+                  ),
             );
           },
         ),

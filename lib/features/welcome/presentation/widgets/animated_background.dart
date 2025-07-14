@@ -13,7 +13,7 @@ class _AnimatedBackgroundState extends State<AnimatedBackground> {
   static const List<List<Color>> _colorSets = [
     [Color(0xFFE0FBFD), Color(0xFFB8EAD9)],
     [Color(0xFFC4F2C2), Color(0xFFD6F9FB)],
-    [Color(0xFFB8EAD9), Color(0xFF63DA5C)],
+    [Color(0xFFB8EAD9), Color(0xFF63DA5C)], // Establecer como fondo del sidebar
     [Color(0xFFE0FBFD), Color(0xFF06D5CD)],
   ];
 
