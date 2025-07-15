@@ -1,3 +1,4 @@
+import 'dart:developer';
 import '../../domain/entities/note.dart';
 
 class NoteModel extends Note {
@@ -10,13 +11,94 @@ class NoteModel extends Note {
   });
 
   factory NoteModel.fromJson(Map<String, dynamic> json) {
-    return NoteModel(
-      id: json['idRecNote'],
-      patientId: json['idPatient'],
-      title: json['title'],
-      content: json['content'],
-      date: DateTime.parse(json['createdAt']),
-    );
+    try {
+      log('📝 NOTE MODEL: Parsing JSON: $json');
+      
+      // Extraer el ID - puede venir en diferentes campos
+      String id;
+      if (json.containsKey('idRecNote')) {
+        id = json['idRecNote'].toString();
+      } else if (json.containsKey('id')) {
+        id = json['id'].toString();
+      } else if (json.containsKey('_id')) {
+        id = json['_id'].toString();
+      } else {
+        id = DateTime.now().millisecondsSinceEpoch.toString();
+        log('⚠️ NOTE MODEL: No ID found, generated: $id');
+      }
+
+      // Extraer el patientId
+      String patientId;
+      if (json.containsKey('idPatient')) {
+        patientId = json['idPatient'].toString();
+      } else if (json.containsKey('patientId')) {
+        patientId = json['patientId'].toString();
+      } else if (json.containsKey('patient_id')) {
+        patientId = json['patient_id'].toString();
+      } else {
+        patientId = 'unknown';
+        log('⚠️ NOTE MODEL: No patientId found, using: $patientId');
+      }
+
+      // Extraer title
+      String title = json['title']?.toString() ?? 'Sin título';
+      
+      // Extraer content
+      String content = json['content']?.toString() ?? '';
+
+      // Extraer fecha - puede venir en diferentes formatos
+      DateTime date;
+      if (json.containsKey('createdAt')) {
+        try {
+          date = DateTime.parse(json['createdAt'].toString());
+        } catch (e) {
+          log('⚠️ NOTE MODEL: Error parsing createdAt: $e');
+          date = DateTime.now();
+        }
+      } else if (json.containsKey('created_at')) {
+        try {
+          date = DateTime.parse(json['created_at'].toString());
+        } catch (e) {
+          log('⚠️ NOTE MODEL: Error parsing created_at: $e');
+          date = DateTime.now();
+        }
+      } else if (json.containsKey('date')) {
+        try {
+          date = DateTime.parse(json['date'].toString());
+        } catch (e) {
+          log('⚠️ NOTE MODEL: Error parsing date: $e');
+          date = DateTime.now();
+        }
+      } else {
+        date = DateTime.now();
+        log('⚠️ NOTE MODEL: No date found, using current time');
+      }
+
+      final noteModel = NoteModel(
+        id: id,
+        patientId: patientId,
+        title: title,
+        content: content,
+        date: date,
+      );
+
+      log('✅ NOTE MODEL: Successfully parsed note - ID: $id, Title: "$title"');
+      return noteModel;
+
+    } catch (e, stackTrace) {
+      log('❌ NOTE MODEL: Error parsing JSON: $e');
+      log('❌ NOTE MODEL: Stack trace: $stackTrace');
+      log('❌ NOTE MODEL: JSON was: $json');
+      
+      // Retornar un modelo por defecto en caso de error crítico
+      return NoteModel(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        patientId: 'error',
+        title: 'Error de parsing',
+        content: 'Esta nota no se pudo cargar correctamente.',
+        date: DateTime.now(),
+      );
+    }
   }
 
   Map<String, dynamic> toJson() {
@@ -25,5 +107,11 @@ class NoteModel extends Note {
       'title': title,
       'content': content,
     };
+  }
+
+  // Método para debug
+  @override
+  String toString() {
+    return 'NoteModel(id: $id, patientId: $patientId, title: "$title", content: "${content.length} chars", date: $date)';
   }
 }

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'dart:developer';
 import '../../../../core/injection_container.dart';
 import '../../../../core/presentation/theme.dart';
 import '../../../welcome/presentation/widgets/animated_background.dart';
@@ -14,6 +15,7 @@ class CreateNotePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    log('📝 CREATE NOTE: Building CreateNotePage');
     return BlocProvider.value(
       value: getIt<NotesBloc>(),
       child: const _CreateNoteView(),
@@ -38,6 +40,7 @@ class _CreateNoteViewState extends State<_CreateNoteView> {
     super.initState();
     _titleController = TextEditingController();
     _contentController = TextEditingController();
+    log('📝 CREATE NOTE: Controllers initialized');
   }
 
   @override
@@ -52,6 +55,8 @@ class _CreateNoteViewState extends State<_CreateNoteView> {
   Widget build(BuildContext context) {
     return BlocListener<NotesBloc, NotesState>(
       listener: (context, state) {
+        log('📝 CREATE NOTE: State changed - ${state.creationStatus}');
+        
         if (state.creationStatus == NoteCreationStatus.success) {
           HapticFeedback.mediumImpact();
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -59,9 +64,19 @@ class _CreateNoteViewState extends State<_CreateNoteView> {
             backgroundColor: AppTheme.primaryColor,
             behavior: SnackBarBehavior.floating,
           ));
-          context.pop(true);
+          
+          // Verificar si podemos hacer pop antes de intentarlo
+          if (context.canPop()) {
+            log('📝 CREATE NOTE: Can pop, navigating back with success result');
+            context.pop(true); // Retorna true para indicar éxito
+          } else {
+            log('📝 CREATE NOTE: Cannot pop, using goNamed to notes');
+            context.goNamed('notes');
+          }
         }
+        
         if (state.creationStatus == NoteCreationStatus.error) {
+          log('❌ CREATE NOTE: Error creating note - ${state.errorMessage}');
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(state.errorMessage ?? 'No se pudo guardar la nota.'),
             backgroundColor: Theme.of(context).colorScheme.error,
@@ -111,7 +126,13 @@ class _CreateNoteViewState extends State<_CreateNoteView> {
       ),
       leading: IconButton(
         icon: Icon(Icons.close_rounded, color: AppTheme.primaryText, size: 28),
-        onPressed: () => context.pop(),
+        onPressed: () {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.goNamed('notes');
+          }
+        },
       ),
       title: Text('Nueva Nota', style: GoogleFonts.interTight(
         textStyle: Theme.of(context).textTheme.headlineSmall,
@@ -171,6 +192,8 @@ class _CreateNoteViewState extends State<_CreateNoteView> {
     final textTheme = Theme.of(context).textTheme;
     return BlocBuilder<NotesBloc, NotesState>(
       builder: (context, state) {
+        final isLoading = state.creationStatus == NoteCreationStatus.loading;
+        
         return ElevatedButton.icon(
           style: ElevatedButton.styleFrom(
             backgroundColor: AppTheme.primaryColor,
@@ -180,15 +203,25 @@ class _CreateNoteViewState extends State<_CreateNoteView> {
             elevation: 4,
             shadowColor: AppTheme.primaryColor.withAlpha(100),
           ),
-          onPressed: state.creationStatus == NoteCreationStatus.loading
-              ? null
-              : () {
-                  context.read<NotesBloc>().add(AddNewNote(
-                        title: _titleController.text,
-                        content: _contentController.text,
-                      ));
-                },
-          icon: state.creationStatus == NoteCreationStatus.loading
+          onPressed: isLoading ? null : () {
+            final title = _titleController.text.trim();
+            final content = _contentController.text.trim();
+            
+            if (title.isEmpty && content.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                content: Text('Por favor, escribe al menos un título o contenido'),
+                backgroundColor: Colors.orange,
+              ));
+              return;
+            }
+            
+            log('📝 CREATE NOTE: Saving note - Title: "$title", Content length: ${content.length}');
+            context.read<NotesBloc>().add(AddNewNote(
+              title: title,
+              content: content,
+            ));
+          },
+          icon: isLoading
               ? Container(
                   width: 24,
                   height: 24,

@@ -18,30 +18,86 @@ class StatisticsRemoteDataSourceImpl implements StatisticsRemoteDataSource {
   @override
   Future<StatisticsModel> getStatisticsData(String patientId, DateTime date) async {
     final formattedDate = DateFormat('yyyy-MM-dd').format(date);
-    log('DATA SOURCE: Fetching statistics data from remote source for patient $patientId on $formattedDate');
+    final url = '${ApiConfig.diaryBaseUrl}/loggin/emotion/$patientId/$formattedDate';
+    log('📊 STATISTICS API: Fetching from: $url');
     
-    final response = await apiClient.get('${ApiConfig.diaryBaseUrl}/loggin/emotion/$patientId/$formattedDate');
+    try {
+      final response = await apiClient.get(url);
+      log('📊 STATISTICS API: Response status: ${response.statusCode}');
+      log('📊 STATISTICS API: Response body: ${response.body}');
 
-    if (response.statusCode == 200) {
-      final responseData = json.decode(response.body);
-      // La API devuelve un formato diferente, hay que adaptarlo
-      // Ejemplo de respuesta API: { "loggingEmotion": [{ "emotionName": "felicidad", "count": 5 }, ...] }
-      
-      final Map<String, double> emotionCounts = {};
-      final List loggingData = responseData['loggingEmotion'];
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        log('📊 STATISTICS API: Parsed response: $responseData');
+        
+        // Verificar si la respuesta contiene datos válidos
+        final Map<String, double> emotionCounts = {};
+        
+        if (responseData is Map<String, dynamic>) {
+          // Buscar datos en diferentes claves posibles
+          List<dynamic>? loggingData;
+          
+          if (responseData.containsKey('loggingEmotion')) {
+            final rawData = responseData['loggingEmotion'];
+            if (rawData is List) {
+              loggingData = rawData;
+            } else if (rawData == null) {
+              log('📊 STATISTICS API: loggingEmotion is null, using empty data');
+              loggingData = [];
+            }
+          } else if (responseData.containsKey('data')) {
+            final rawData = responseData['data'];
+            if (rawData is List) {
+              loggingData = rawData;
+            } else if (rawData == null) {
+              loggingData = [];
+            }
+          }
+          
+          if (loggingData != null) {
+            for (var item in loggingData) {
+              if (item is Map<String, dynamic>) {
+                final emotionName = item['emotionName']?.toString() ?? 'unknown';
+                final count = (item['count'] as num?)?.toDouble() ?? 0.0;
+                emotionCounts[emotionName] = count;
+              }
+            }
+          }
+        }
+        
+        // Si no hay datos, crear datos por defecto
+        if (emotionCounts.isEmpty) {
+          log('📊 STATISTICS API: No emotion data found, using default empty data');
+          emotionCounts['Sin datos'] = 0.0;
+        }
 
-      for (var item in loggingData) {
-        emotionCounts[item['emotionName']] = (item['count'] as int).toDouble();
+        final mockData = {
+          "labels": emotionCounts.keys.toList(),
+          "values": emotionCounts.values.toList(),
+        };
+        
+        log('📊 STATISTICS API: Processed data: $mockData');
+        return StatisticsModel.fromJson(mockData);
+        
+      } else if (response.statusCode == 404) {
+        log('📊 STATISTICS API: No statistics found (404), returning empty data');
+        return const StatisticsModel(
+          labels: ['Sin datos'],
+          values: [0.0],
+        );
+      } else {
+        throw ServerException('Error ${response.statusCode}: ${response.body}');
       }
-
-      final mockData = {
-        "labels": emotionCounts.keys.toList(),
-        "values": emotionCounts.values.toList(),
-      };
-      
-      return StatisticsModel.fromJson(mockData);
-    } else {
-      throw ServerException('Failed to load statistics');
+    } catch (e) {
+      if (e is ServerException) {
+        rethrow;
+      }
+      log('💥 STATISTICS API: Error: $e');
+      // En caso de error, retornar datos vacíos en lugar de fallar
+      return const StatisticsModel(
+        labels: ['Error'],
+        values: [0.0],
+      );
     }
   }
 }

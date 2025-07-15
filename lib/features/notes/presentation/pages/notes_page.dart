@@ -7,8 +7,10 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'dart:developer';
 import '../../../../core/injection_container.dart';
 import '../../../../core/presentation/theme.dart';
+import '../../../../core/session/session_cubit.dart';
 import '../../../welcome/presentation/widgets/animated_background.dart';
 import '../../domain/entities/note.dart';
 import '../bloc/notes_bloc.dart';
@@ -20,7 +22,10 @@ class NotesPage extends StatelessWidget {
   Widget build(BuildContext context) {
     initializeDateFormatting('es_ES');
     return BlocProvider(
-      create: (context) => getIt<NotesBloc>()..add(LoadNotes()),
+      create: (context) {
+        log('📝 NOTES: Creating NotesBloc and loading notes...');
+        return getIt<NotesBloc>()..add(LoadNotes());
+      },
       child: const _NotesView(),
     );
   }
@@ -65,22 +70,90 @@ class _NotesView extends StatelessWidget {
                 centerTitle: true,
               ),
               SliverToBoxAdapter(
-                child: BlocBuilder<NotesBloc, NotesState>(
-                  builder: (context, state) {
-                    if (state.status == NotesStatus.loading || state.status == NotesStatus.initial) {
-                      return const Center(
-                        child: Padding(
-                          padding: EdgeInsets.only(top: 100),
-                          child: CircularProgressIndicator(),
+                child: BlocConsumer<NotesBloc, NotesState>(
+                  listener: (context, state) {
+                    // Listener para errores
+                    if (state.status == NotesStatus.error) {
+                      log('❌ NOTES: Error loading notes - ${state.errorMessage}');
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(state.errorMessage ?? 'Error al cargar las notas'),
+                          backgroundColor: Colors.red.shade600,
+                          behavior: SnackBarBehavior.floating,
                         ),
                       );
                     }
-                    if (state.status == NotesStatus.error) {
-                      return Center(child: Text(state.errorMessage ?? 'Error al cargar las notas'));
+                  },
+                  builder: (context, state) {
+                    log('📝 NOTES: Current state - ${state.status}, Notes count: ${state.notes.length}');
+                    
+                    // Verificar estado de sesión
+                    final sessionState = context.read<SessionCubit>().state;
+                    if (sessionState is! AuthenticatedSessionState) {
+                      log('❌ NOTES: User not authenticated');
+                      return const Center(
+                        child: Padding(
+                          padding: EdgeInsets.only(top: 100),
+                          child: Text('Debes iniciar sesión para ver tus notas'),
+                        ),
+                      );
                     }
+
+                    if (state.status == NotesStatus.loading || state.status == NotesStatus.initial) {
+                      log('🔄 NOTES: Loading state detected');
+                      return const Center(
+                        child: Padding(
+                          padding: EdgeInsets.only(top: 100),
+                          child: Column(
+                            children: [
+                              CircularProgressIndicator(),
+                              SizedBox(height: 16),
+                              Text('Cargando notas...'),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+                    
+                    if (state.status == NotesStatus.error) {
+                      log('❌ NOTES: Error state - ${state.errorMessage}');
+                      return Center(
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 100),
+                          child: Column(
+                            children: [
+                              Icon(Icons.error_outline, size: 64, color: Colors.red.shade400),
+                              const SizedBox(height: 16),
+                              Text(
+                                'Error al cargar las notas',
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                state.errorMessage ?? 'Error desconocido',
+                                style: Theme.of(context).textTheme.bodyMedium,
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 16),
+                              ElevatedButton(
+                                onPressed: () {
+                                  log('🔄 NOTES: Retrying to load notes...');
+                                  context.read<NotesBloc>().add(LoadNotes());
+                                },
+                                child: const Text('Reintentar'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+                    
                     if (state.notes.isEmpty) {
+                      log('📝 NOTES: No notes found - showing empty state');
                       return const _EmptyNotesView();
                     }
+                    
+                    log('✅ NOTES: Showing ${state.notes.length} notes');
                     return _NotesList(notes: state.notes);
                   },
                 ),
@@ -134,6 +207,7 @@ class _NotesList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    log('📝 NOTES LIST: Building list with ${notes.length} notes');
     return ListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -141,6 +215,7 @@ class _NotesList extends StatelessWidget {
       itemCount: notes.length,
       itemBuilder: (context, index) {
         final note = notes[index];
+        log('📝 NOTES LIST: Building note ${index + 1}: "${note.title}"');
         return _NoteCard(note: note)
             .animate()
             .fadeIn(delay: (100 + index * 50).ms)
@@ -166,6 +241,7 @@ class _NoteCard extends StatelessWidget {
       color: Colors.white.withAlpha(220),
       child: InkWell(
         onTap: () {
+          HapticFeedback.lightImpact();
           context.pushNamed('note_detail', extra: note);
         },
         borderRadius: BorderRadius.circular(20),
@@ -221,9 +297,15 @@ class _AddNoteFAB extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FloatingActionButton(
-      onPressed: () {
+      onPressed: () async {
         HapticFeedback.lightImpact();
-        context.pushNamed('create_note');
+        final result = await context.pushNamed('create_note');
+        
+        // Si se creó una nota exitosamente, recargar la lista
+        if (result == true && context.mounted) {
+          log('📝 NOTES: Note created successfully, reloading list...');
+          context.read<NotesBloc>().add(LoadNotes());
+        }
       },
       shape: const CircleBorder(),
       backgroundColor: AppTheme.primaryColor,
