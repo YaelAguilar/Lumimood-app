@@ -1,20 +1,16 @@
 part of 'auth_bloc.dart';
 
 enum FormStatus { initial, loading, success, error }
-
 enum AuthViewMode { login, register, forgotPassword }
 
 class AuthState extends Equatable {
   final AuthViewMode viewMode;
-
   final String email;
   final String password;
   final bool isPasswordVisible;
   final FormStatus status;
   final String? errorMessage;
   final String? successMessage;
-
-  // Campos de registro
   final String name;
   final String lastName;
   final String secondLastName;
@@ -22,9 +18,11 @@ class AuthState extends Equatable {
   final DateTime? birthDate;
   final String phoneNumber;
   final AccountType accountType;
+  final String professionName;
+  final String professionalLicense;
 
   const AuthState({
-    this.viewMode = AuthViewMode.login, // El valor inicial es la vista de login
+    this.viewMode = AuthViewMode.login,
     this.email = '',
     this.password = '',
     this.isPasswordVisible = false,
@@ -38,6 +36,8 @@ class AuthState extends Equatable {
     this.birthDate,
     this.phoneNumber = '',
     this.accountType = AccountType.patient,
+    this.professionName = 'psicologo',
+    this.professionalLicense = '',
   });
 
   AuthState copyWith({
@@ -55,6 +55,8 @@ class AuthState extends Equatable {
     DateTime? birthDate,
     String? phoneNumber,
     AccountType? accountType,
+    String? professionName,
+    String? professionalLicense,
   }) {
     return AuthState(
       viewMode: viewMode ?? this.viewMode,
@@ -62,7 +64,6 @@ class AuthState extends Equatable {
       password: password ?? this.password,
       isPasswordVisible: isPasswordVisible ?? this.isPasswordVisible,
       status: status ?? this.status,
-      // Usar 'null' explícitamente si no se provee un valor para poder limpiar los mensajes
       errorMessage: errorMessage,
       successMessage: successMessage,
       name: name ?? this.name,
@@ -72,24 +73,15 @@ class AuthState extends Equatable {
       birthDate: birthDate ?? this.birthDate,
       phoneNumber: phoneNumber ?? this.phoneNumber,
       accountType: accountType ?? this.accountType,
+      professionName: professionName ?? this.professionName,
+      professionalLicense: professionalLicense ?? this.professionalLicense,
     );
   }
 
   @override
   List<Object?> get props => [
-        viewMode,
-        email,
-        password,
-        isPasswordVisible,
-        status,
-        errorMessage,
-        successMessage,
-        name,
-        lastName,
-        secondLastName,
-        gender,
-        birthDate,
-        phoneNumber,
-        accountType,
+        viewMode, email, password, isPasswordVisible, status, errorMessage,
+        successMessage, name, lastName, secondLastName, gender, birthDate,
+        phoneNumber, accountType, professionName, professionalLicense,
       ];
 }

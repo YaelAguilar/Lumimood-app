@@ -12,6 +12,7 @@ import '../features/authentication/domain/repositories/auth_repository.dart';
 import '../features/authentication/domain/usecases/forgot_password.dart';
 import '../features/authentication/domain/usecases/login_user.dart';
 import '../features/authentication/domain/usecases/register_user.dart';
+import '../features/authentication/domain/usecases/register_specialist.dart';
 import '../features/authentication/presentation/bloc/auth_bloc.dart';
 
 // Diary Imports
@@ -30,7 +31,7 @@ import '../features/notes/domain/usecases/add_note.dart';
 import '../features/notes/domain/usecases/get_notes.dart';
 import '../features/notes/presentation/bloc/notes_bloc.dart';
 
-// Tasks Imports (Mantenemos la implementación local por ahora)
+// Tasks Imports
 import '../features/tasks/data/datasources/tasks_local_datasource.dart';
 import '../features/tasks/data/repositories/tasks_repository_impl.dart';
 import '../features/tasks/domain/repositories/tasks_repository.dart';
@@ -75,54 +76,85 @@ Future<void> init() async {
 }
 
 void _initAuth() {
+  // Blocs
   getIt.registerFactory(() => AuthBloc(
         loginUser: getIt(),
         registerUser: getIt(),
+        registerSpecialist: getIt(),
         forgotPassword: getIt(),
         sessionCubit: getIt(),
       ));
+
+  // Use cases
   getIt.registerLazySingleton(() => LoginUser(getIt()));
   getIt.registerLazySingleton(() => RegisterUser(getIt()));
+  getIt.registerLazySingleton(() => RegisterSpecialist(getIt()));
   getIt.registerLazySingleton(() => ForgotPassword(getIt()));
+
+  // Repositories and DataSources
   getIt.registerLazySingleton<AuthRepository>(() => AuthRepositoryImpl(remoteDataSource: getIt()));
   getIt.registerLazySingleton<AuthRemoteDataSource>(() => AuthRemoteDataSourceImpl(apiClient: getIt()));
 }
 
 void _initDiary() {
+  // Blocs
   getIt.registerFactory(() => DiaryBloc(getEmotions: getIt(), saveDiaryEntry: getIt(), sessionCubit: getIt()));
+  
+  // Use cases
   getIt.registerLazySingleton(() => GetEmotions(getIt()));
   getIt.registerLazySingleton(() => SaveDiaryEntry(getIt()));
+  
   getIt.registerLazySingleton<DiaryRepository>(() => DiaryRepositoryImpl(remoteDataSource: getIt()));
   getIt.registerLazySingleton<DiaryRemoteDataSource>(() => DiaryRemoteDataSourceImpl(apiClient: getIt()));
 }
 
 void _initNotes() {
+  // Blocs
   getIt.registerFactory(() => NotesBloc(getNotes: getIt(), addNote: getIt(), sessionCubit: getIt()));
+
+  // Use cases
   getIt.registerLazySingleton(() => GetNotes(getIt()));
   getIt.registerLazySingleton(() => AddNote(getIt()));
+  
+  // Repositories and DataSources
   getIt.registerLazySingleton<NotesRepository>(() => NotesRepositoryImpl(remoteDataSource: getIt()));
   getIt.registerLazySingleton<NotesRemoteDataSource>(() => NotesRemoteDataSourceImpl(apiClient: getIt()));
 }
 
 void _initTasks() {
+  // Blocs
   getIt.registerFactory(() => TasksBloc(getTasks: getIt(), addTask: getIt(), toggleTaskCompletion: getIt()));
+  
+  // Use cases
   getIt.registerLazySingleton(() => GetTasks(getIt()));
   getIt.registerLazySingleton(() => tasks_add.AddTask(getIt()));
   getIt.registerLazySingleton(() => ToggleTaskCompletion(getIt()));
+  
+  // Repositories and DataSources
   getIt.registerLazySingleton<TasksRepository>(() => TasksRepositoryImpl(localDataSource: getIt()));
   getIt.registerLazySingleton<TasksLocalDataSource>(() => TasksLocalDataSourceImpl());
 }
 
 void _initStatistics() {
+  // Blocs
   getIt.registerFactory(() => StatisticsBloc(getStatisticsData: getIt(), sessionCubit: getIt()));
+  
+  // Use cases
   getIt.registerLazySingleton(() => GetStatisticsData(getIt()));
+  
+  // Repositories and DataSources
   getIt.registerLazySingleton<StatisticsRepository>(() => StatisticsRepositoryImpl(remoteDataSource: getIt()));
   getIt.registerLazySingleton<StatisticsRemoteDataSource>(() => StatisticsRemoteDataSourceImpl(apiClient: getIt()));
 }
 
 void _initSpecialist() {
+  // Blocs
   getIt.registerFactory(() => SpecialistBloc(getAppointments: getIt(), sessionCubit: getIt()));
+  
+  // Use cases
   getIt.registerLazySingleton(() => GetAppointmentsByProfessional(getIt()));
+  
+  // Repositories and DataSources
   getIt.registerLazySingleton<AppointmentRepository>(() => AppointmentRepositoryImpl(remoteDataSource: getIt()));
   getIt.registerLazySingleton<AppointmentRemoteDataSource>(() => AppointmentRemoteDataSourceImpl(apiClient: getIt()));
 }

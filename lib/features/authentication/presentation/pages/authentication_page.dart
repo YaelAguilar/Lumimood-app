@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart'; // Necesario para el CupertinoSlidingSegmentedControl
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -189,15 +190,7 @@ class _LoginFormState extends State<_LoginForm> {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryColor, 
-                    foregroundColor: Colors.white, 
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), 
-                    disabledBackgroundColor: Colors.grey.shade400, 
-                    elevation: 0,
-                    // --- CORRECCIÓN APLICADA ---
-                    shadowColor: Colors.transparent,
-                  ),
+                  style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryColor, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), disabledBackgroundColor: Colors.grey.shade400, elevation: 0, shadowColor: Colors.transparent),
                   onPressed: state.status == FormStatus.loading ? null : () { if (_formKey.currentState?.validate() ?? false) { context.read<AuthBloc>().add(AuthLoginWithEmailAndPasswordPressed()); } },
                   child: state.status == FormStatus.loading ? Row(mainAxisAlignment: MainAxisAlignment.center, children: [const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)), const SizedBox(width: 12), Text('Iniciando sesión...', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.bold))]) : Text('Iniciar sesión como ${state.accountType == AccountType.specialist ? "Especialista" : "Paciente"}', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
@@ -229,7 +222,27 @@ class _RegisterCard extends StatelessWidget {
           Text('Crea tu cuenta', textAlign: TextAlign.center, style: GoogleFonts.interTight(textStyle: textTheme.displayLarge, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           Text('Empieza ingresando estos simples datos', textAlign: TextAlign.center, style: textTheme.bodyLarge?.copyWith(color: AppTheme.primaryText.withAlpha(179))),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
+          BlocBuilder<AuthBloc, AuthState>(
+            buildWhen: (p, c) => p.accountType != c.accountType,
+            builder: (context, state) {
+              return CupertinoSlidingSegmentedControl<AccountType>(
+                backgroundColor: AppTheme.alternate,
+                thumbColor: AppTheme.primaryColor,
+                groupValue: state.accountType,
+                children: const {
+                  AccountType.patient: Padding(padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10), child: Text('Soy Paciente', style: TextStyle(color: Colors.white))),
+                  AccountType.specialist: Padding(padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10), child: Text('Soy Especialista', style: TextStyle(color: Colors.white))),
+                },
+                onValueChanged: (value) {
+                  if (value != null) {
+                    context.read<AuthBloc>().add(AuthAccountTypeChanged(value));
+                  }
+                },
+              );
+            },
+          ),
+          const SizedBox(height: 24),
           const _RegisterForm(),
         ],
       ),
@@ -286,29 +299,40 @@ class _RegisterFormState extends State<_RegisterForm> {
             const SizedBox(height: 16),
             TextFormField(onChanged: (value) => context.read<AuthBloc>().add(AuthPhoneNumberChanged(value)), decoration: const InputDecoration(prefixIcon: Icon(Icons.phone_outlined, color: AppTheme.primaryColor), hintText: 'Número de teléfono'), keyboardType: TextInputType.phone),
             const SizedBox(height: 16),
+            BlocBuilder<AuthBloc, AuthState>(
+              buildWhen: (p, c) => p.accountType != c.accountType,
+              builder: (context, state) {
+                if (state.accountType == AccountType.specialist) {
+                  return Column(
+                    children: [
+                      DropdownButtonFormField<String>(
+                        value: state.professionName,
+                        items: ['psicologo', 'psiquiatra'].map((label) => DropdownMenuItem(value: label, child: Text(label[0].toUpperCase() + label.substring(1)))).toList(),
+                        onChanged: (value) { if (value != null) { context.read<AuthBloc>().add(AuthProfessionNameChanged(value)); } },
+                        decoration: const InputDecoration(prefixIcon: Icon(Icons.work_outline, color: AppTheme.primaryColor), hintText: 'Profesión'),
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        onChanged: (value) => context.read<AuthBloc>().add(AuthProfessionalLicenseChanged(value)),
+                        decoration: const InputDecoration(prefixIcon: Icon(Icons.badge_outlined, color: AppTheme.primaryColor), hintText: 'Cédula Profesional'),
+                        keyboardType: TextInputType.text,
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                  ).animate().fadeIn(duration: 400.ms);
+                }
+                return const SizedBox.shrink();
+              },
+            ),
             BlocBuilder<AuthBloc, AuthState>(buildWhen: (p, c) => p.isPasswordVisible != c.isPasswordVisible, builder: (context, state) => TextFormField(onChanged: (value) => context.read<AuthBloc>().add(AuthPasswordChanged(value)), obscureText: !state.isPasswordVisible, decoration: InputDecoration(prefixIcon: const Icon(Icons.lock_outline, color: AppTheme.primaryColor), hintText: 'Contraseña', suffixIcon: IconButton(icon: Icon(state.isPasswordVisible ? Icons.visibility_outlined : Icons.visibility_off_outlined, color: Colors.grey.shade600), onPressed: () => context.read<AuthBloc>().add(AuthPasswordVisibilityToggled()))))),
             const SizedBox(height: 32),
             BlocBuilder<AuthBloc, AuthState>(
               buildWhen: (p, c) => p.status != c.status,
               builder: (context, state) {
                 return ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryColor, 
-                    foregroundColor: Colors.white, 
-                    minimumSize: const Size(double.infinity, 56), 
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), 
-                    elevation: 0,
-                    // --- CORRECCIÓN APLICADA ---
-                    shadowColor: Colors.transparent,
-                  ),
-                  onPressed: state.status == FormStatus.loading ? null : () { 
-                    if (_formKey.currentState?.validate() ?? false) { 
-                      context.read<AuthBloc>().add(AuthRegisterWithEmailAndPasswordPressed()); 
-                    }
-                  },
-                  child: state.status == FormStatus.loading 
-                    ? const CircularProgressIndicator(color: Colors.white) 
-                    : const Text('Crear cuenta')
+                  style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryColor, foregroundColor: Colors.white, minimumSize: const Size(double.infinity, 56), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0, shadowColor: Colors.transparent),
+                  onPressed: state.status == FormStatus.loading ? null : () { if (_formKey.currentState?.validate() ?? false) { context.read<AuthBloc>().add(AuthRegisterWithEmailAndPasswordPressed()); } },
+                  child: state.status == FormStatus.loading ? const CircularProgressIndicator(color: Colors.white) : const Text('Crear cuenta')
                 );
               },
             ),
@@ -346,21 +370,9 @@ class _ForgotPasswordCard extends StatelessWidget {
           BlocBuilder<AuthBloc, AuthState>(
             builder: (context, state) {
               return ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryColor, 
-                  foregroundColor: Colors.white, 
-                  minimumSize: const Size(double.infinity, 56), 
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), 
-                  elevation: 0,
-                  // --- CORRECCIÓN APLICADA ---
-                  shadowColor: Colors.transparent,
-                ),
-                onPressed: state.status == FormStatus.loading 
-                  ? null 
-                  : () => context.read<AuthBloc>().add(AuthForgotPasswordRequested()),
-                child: state.status == FormStatus.loading 
-                  ? const CircularProgressIndicator(color: Colors.white) 
-                  : const Text('Enviar enlace'),
+                style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryColor, foregroundColor: Colors.white, minimumSize: const Size(double.infinity, 56), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0, shadowColor: Colors.transparent),
+                onPressed: state.status == FormStatus.loading ? null : () => context.read<AuthBloc>().add(AuthForgotPasswordRequested()),
+                child: state.status == FormStatus.loading ? const CircularProgressIndicator(color: Colors.white) : const Text('Enviar enlace'),
               );
             },
           ),

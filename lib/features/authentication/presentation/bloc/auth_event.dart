@@ -61,3 +61,13 @@ final class AuthAccountTypeChanged extends AuthEvent {
 final class AuthRegisterWithEmailAndPasswordPressed extends AuthEvent {}
 
 final class AuthResetState extends AuthEvent {}
+
+final class AuthProfessionNameChanged extends AuthEvent {
+  final String professionName;
+  AuthProfessionNameChanged(this.professionName);
+}
+
+final class AuthProfessionalLicenseChanged extends AuthEvent {
+  final String license;
+  AuthProfessionalLicenseChanged(this.license);
+}

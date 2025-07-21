@@ -6,6 +6,7 @@ import '../../domain/entities/user_entity.dart';
 import '../../domain/usecases/forgot_password.dart';
 import '../../domain/usecases/login_user.dart';
 import '../../domain/usecases/register_user.dart';
+import '../../domain/usecases/register_specialist.dart';
 
 part 'auth_event.dart';
 part 'auth_state.dart';
@@ -13,12 +14,14 @@ part 'auth_state.dart';
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final LoginUser loginUser;
   final RegisterUser registerUser;
+  final RegisterSpecialist registerSpecialist;
   final ForgotPassword forgotPassword;
   final SessionCubit sessionCubit;
 
   AuthBloc({
     required this.loginUser,
     required this.registerUser,
+    required this.registerSpecialist,
     required this.forgotPassword,
     required this.sessionCubit,
   }) : super(const AuthState()) {
@@ -41,6 +44,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthBirthDateChanged>((event, emit) => emit(state.copyWith(birthDate: event.birthDate)));
     on<AuthPhoneNumberChanged>((event, emit) => emit(state.copyWith(phoneNumber: event.phoneNumber)));
     on<AuthAccountTypeChanged>((event, emit) => emit(state.copyWith(accountType: event.accountType)));
+    on<AuthProfessionNameChanged>((event, emit) => emit(state.copyWith(professionName: event.professionName)));
+    on<AuthProfessionalLicenseChanged>((event, emit) => emit(state.copyWith(professionalLicense: event.license)));
     
     on<AuthLoginWithEmailAndPasswordPressed>(_onLoginWithEmail);
     on<AuthRegisterWithEmailAndPasswordPressed>(_onRegisterWithEmail);
@@ -88,21 +93,39 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       return;
     }
 
-    final result = await registerUser(RegisterParams(
-      name: state.name,
-      lastName: state.lastName,
-      secondLastName: state.secondLastName,
-      email: state.email,
-      password: state.password,
-      gender: state.gender,
-      phoneNumber: state.phoneNumber,
-      birthDate: state.birthDate!,
-    ));
-
-    result.fold(
-      (failure) => emit(state.copyWith(status: FormStatus.error, errorMessage: failure.message)),
-      (_) => emit(state.copyWith(status: FormStatus.success, successMessage: '¡Registro exitoso! Ahora puedes iniciar sesión.')),
-    );
+    if (state.accountType == AccountType.patient) {
+      final result = await registerUser(RegisterParams(
+        name: state.name,
+        lastName: state.lastName,
+        secondLastName: state.secondLastName,
+        email: state.email,
+        password: state.password,
+        gender: state.gender,
+        phoneNumber: state.phoneNumber,
+        birthDate: state.birthDate!,
+      ));
+      result.fold(
+        (failure) => emit(state.copyWith(status: FormStatus.error, errorMessage: failure.message)),
+        (_) => emit(state.copyWith(status: FormStatus.success, successMessage: '¡Registro de paciente exitoso!')),
+      );
+    } else {
+      final result = await registerSpecialist(RegisterSpecialistParams(
+        name: state.name,
+        lastName: state.lastName,
+        secondLastName: state.secondLastName,
+        email: state.email,
+        password: state.password,
+        gender: state.gender,
+        phoneNumber: state.phoneNumber,
+        birthDate: state.birthDate!,
+        professionName: state.professionName,
+        professionalLicense: state.professionalLicense,
+      ));
+      result.fold(
+        (failure) => emit(state.copyWith(status: FormStatus.error, errorMessage: failure.message)),
+        (_) => emit(state.copyWith(status: FormStatus.success, successMessage: '¡Registro de especialista exitoso!')),
+      );
+    }
   }
 
   Future<void> _onForgotPasswordRequested(AuthForgotPasswordRequested event, Emitter<AuthState> emit) async {
