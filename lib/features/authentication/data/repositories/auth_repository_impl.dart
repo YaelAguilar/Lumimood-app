@@ -22,20 +22,24 @@ class AuthRepositoryImpl implements AuthRepository {
     // --- LÍNEA DE DEPURACIÓN ---
     // Esta línea imprimirá en la consola exactamente qué tipo de cuenta
     // se está procesando en la capa de repositorio antes de enviarla a la red.
-    log('AuthRepository: Attempting login for type: ${typeAccount.name}');
+    log('🏛️ AUTH REPOSITORY: Attempting login for email=$email, type=${typeAccount.name}');
     // ----------------------------
 
     try {
+      log('🏛️ AUTH REPOSITORY: About to call remoteDataSource.login()...');
       final userModel = await remoteDataSource.login(
         email: email,
         password: password,
         typeAccount: typeAccount.name, // El .name convierte el enum a "patient" o "specialist"
       );
+      log('🏛️ AUTH REPOSITORY: remoteDataSource.login() completed successfully');
       return Right(userModel);
     } on ServerException catch (e) {
+      log('🏛️ AUTH REPOSITORY: ServerException caught - ${e.message}');
       return Left(ServerFailure(e.message));
     } on Exception catch (e) {
       // Este catch es para errores de red, como cuando el servidor no responde.
+      log('🏛️ AUTH REPOSITORY: General Exception caught - ${e.toString()}');
       return Left(ServerFailure('Error de red: ${e.toString()}'));
     }
   }

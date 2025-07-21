@@ -2,6 +2,11 @@ part of 'auth_bloc.dart';
 
 sealed class AuthEvent {}
 
+final class AuthViewModeChanged extends AuthEvent {
+  final AuthViewMode viewMode;
+  AuthViewModeChanged(this.viewMode);
+}
+
 final class AuthEmailChanged extends AuthEvent {
   final String email;
   AuthEmailChanged(this.email);

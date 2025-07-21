@@ -1,20 +1,20 @@
 import 'dart:developer';
+import 'dart:convert';
 import '../../../../core/api/api_client.dart';
 import '../../../../core/api/api_config.dart';
 import '../../../../core/error/exceptions.dart';
-import '../models/diary_entry_model.dart';
 import '../models/emotion_model.dart';
 
 abstract class DiaryRemoteDataSource {
   Future<List<EmotionModel>> getAvailableEmotions();
-  Future<void> saveDiaryEntry(DiaryEntryModel entry);
+  Future<void> saveNote({required String patientId, required String title, required String content});
+  Future<void> saveEmotion({required String patientId, required String emotionId, required int intensity});
 }
 
 class DiaryRemoteDataSourceImpl implements DiaryRemoteDataSource {
   final ApiClient apiClient;
   DiaryRemoteDataSourceImpl({required this.apiClient});
 
-  // Las emociones se mantienen locales por ahora, ya que la API no las provee.
   @override
   Future<List<EmotionModel>> getAvailableEmotions() async {
     log('DATA SOURCE: Fetching emotions from static list.');
@@ -22,41 +22,27 @@ class DiaryRemoteDataSourceImpl implements DiaryRemoteDataSource {
     return Future.value(AppEmotions.emotions);
   }
 
-  // Se conecta a los endpoints de la API para guardar nota y emoción
   @override
-  Future<void> saveDiaryEntry(DiaryEntryModel entry) async {
-    try {
-      // Guardar la nota
-      final noteResponse = await apiClient.post(
-        '${ApiConfig.diaryBaseUrl}/record/note',
-        {
-          'idPatient': entry.idPatient,
-          'title': entry.title,
-          'content': entry.content,
-        },
-      );
+  Future<void> saveNote({required String patientId, required String title, required String content}) async {
+    final response = await apiClient.post(
+      '${ApiConfig.diaryBaseUrl}/record/note',
+      {'idPatient': patientId, 'title': title, 'content': content},
+    );
+    if (response.statusCode != 201) {
+      final errorBody = json.decode(response.body);
+      throw ServerException(errorBody['message'] ?? 'Failed to save note');
+    }
+  }
 
-      if (noteResponse.statusCode != 201) {
-        throw ServerException('Failed to save note');
-      }
-
-      // Guardar la emoción si existe
-      if (entry.emotion != null) {
-        final emotionResponse = await apiClient.post(
-          '${ApiConfig.diaryBaseUrl}/record/emotion',
-          {
-            'idPatient': entry.idPatient,
-            'emotionName': entry.emotion!.name.toLowerCase(),
-            'intensity': entry.intensity,
-          },
-        );
-        if (emotionResponse.statusCode != 201) {
-          throw ServerException('Failed to save emotion');
-        }
-      }
-    } catch (e) {
-      log('Error saving diary entry: $e');
-      throw ServerException('Error al guardar la entrada del diario.');
+  @override
+  Future<void> saveEmotion({required String patientId, required String emotionId, required int intensity}) async {
+    final response = await apiClient.post(
+      '${ApiConfig.diaryBaseUrl}/record/emotion',
+      {'idPatient': patientId, 'emotionName': emotionId, 'intensity': intensity},
+    );
+    if (response.statusCode != 201) {
+      final errorBody = json.decode(response.body);
+      throw ServerException(errorBody['message'] ?? 'Failed to save emotion');
     }
   }
 }

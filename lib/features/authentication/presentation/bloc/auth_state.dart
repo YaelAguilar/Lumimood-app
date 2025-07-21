@@ -2,7 +2,11 @@ part of 'auth_bloc.dart';
 
 enum FormStatus { initial, loading, success, error }
 
+enum AuthViewMode { login, register, forgotPassword }
+
 class AuthState extends Equatable {
+  final AuthViewMode viewMode;
+
   final String email;
   final String password;
   final bool isPasswordVisible;
@@ -20,6 +24,7 @@ class AuthState extends Equatable {
   final AccountType accountType;
 
   const AuthState({
+    this.viewMode = AuthViewMode.login, // El valor inicial es la vista de login
     this.email = '',
     this.password = '',
     this.isPasswordVisible = false,
@@ -29,13 +34,14 @@ class AuthState extends Equatable {
     this.name = '',
     this.lastName = '',
     this.secondLastName = '',
-    this.gender = 'Masculino', // Valor por defecto que coincide con el backend
+    this.gender = 'Masculino',
     this.birthDate,
     this.phoneNumber = '',
     this.accountType = AccountType.patient,
   });
 
   AuthState copyWith({
+    AuthViewMode? viewMode,
     String? email,
     String? password,
     bool? isPasswordVisible,
@@ -51,10 +57,12 @@ class AuthState extends Equatable {
     AccountType? accountType,
   }) {
     return AuthState(
+      viewMode: viewMode ?? this.viewMode,
       email: email ?? this.email,
       password: password ?? this.password,
       isPasswordVisible: isPasswordVisible ?? this.isPasswordVisible,
       status: status ?? this.status,
+      // Usar 'null' explícitamente si no se provee un valor para poder limpiar los mensajes
       errorMessage: errorMessage,
       successMessage: successMessage,
       name: name ?? this.name,
@@ -69,6 +77,7 @@ class AuthState extends Equatable {
 
   @override
   List<Object?> get props => [
+        viewMode,
         email,
         password,
         isPasswordVisible,

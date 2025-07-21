@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-extension StyleExtensions on TextStyle {
+extension TextStyleHelper on TextStyle? {
   TextStyle override({
     String? fontFamily,
     Color? color,
@@ -8,15 +8,17 @@ extension StyleExtensions on TextStyle {
     FontWeight? fontWeight,
     double? letterSpacing,
     FontStyle? fontStyle,
+    TextDecoration? decoration,
     double? height,
   }) {
-    return copyWith(
+    return (this ?? const TextStyle()).copyWith(
       fontFamily: fontFamily,
       color: color,
       fontSize: fontSize,
       fontWeight: fontWeight,
       letterSpacing: letterSpacing,
       fontStyle: fontStyle,
+      decoration: decoration,
       height: height,
     );
   }

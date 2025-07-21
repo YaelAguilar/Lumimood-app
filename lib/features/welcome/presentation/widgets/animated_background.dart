@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 
 class AnimatedBackground extends StatefulWidget {
@@ -13,7 +12,7 @@ class _AnimatedBackgroundState extends State<AnimatedBackground> {
   static const List<List<Color>> _colorSets = [
     [Color(0xFFE0FBFD), Color(0xFFB8EAD9)],
     [Color(0xFFC4F2C2), Color(0xFFD6F9FB)],
-    [Color(0xFFB8EAD9), Color(0xFF63DA5C)], // Establecer como fondo del sidebar
+    [Color(0xFFB8EAD9), Color(0xFF63DA5C)],
     [Color(0xFFE0FBFD), Color(0xFF06D5CD)],
   ];
 
@@ -32,8 +31,6 @@ class _AnimatedBackgroundState extends State<AnimatedBackground> {
   @override
   void initState() {
     super.initState();
-    _updateGradient();
-    
     _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
       _updateGradient();
     });
@@ -65,12 +62,6 @@ class _AnimatedBackgroundState extends State<AnimatedBackground> {
           colors: _colorSets[_colorIndex],
           begin: _begin,
           end: _end,
-        ),
-      ),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
-        child: Container(
-          decoration: BoxDecoration(color: Colors.white.withAlpha(0)),
         ),
       ),
     );

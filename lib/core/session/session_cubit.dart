@@ -13,19 +13,33 @@ class SessionCubit extends Cubit<SessionState> {
     _loadSession();
   }
 
+  // Claves para SharedPreferences
+  static const _tokenKey = 'jwt_token';
+  static const _userIdKey = 'user_id';
+  static const _userEmailKey = 'user_email';
+  static const _userNameKey = 'user_name';
+  static const _userTypeKey = 'user_type';
+
   /// Carga la sesión existente al inicializar
   void _loadSession() {
     try {
-      final token = sharedPreferences.getString('jwt_token');
-      final userId = sharedPreferences.getString('user_id');
-      final userEmail = sharedPreferences.getString('user_email');
-      final userName = sharedPreferences.getString('user_name');
-      final userTypeString = sharedPreferences.getString('user_type');
+      final token = sharedPreferences.getString(_tokenKey);
+      final userId = sharedPreferences.getString(_userIdKey);
+      final userEmail = sharedPreferences.getString(_userEmailKey);
+      final userName = sharedPreferences.getString(_userNameKey);
+      final userTypeName = sharedPreferences.getString(_userTypeKey);
 
-      if (token != null && userId != null && userEmail != null && userName != null && userTypeString != null) {
-        final userType = userTypeString == 'AccountType.specialist' 
-          ? AccountType.specialist 
-          : AccountType.patient;
+      if (token != null && userId != null && userEmail != null && userName != null && userTypeName != null) {
+        log('🔍 SESSION: Loading user type from storage: $userTypeName');
+        
+        final userType = AccountType.values.firstWhere(
+          (type) => type.name == userTypeName,
+          orElse: () {
+            log('⚠️ SESSION: Could not parse "$userTypeName", defaulting to patient.');
+            return AccountType.patient; // Valor por defecto si no se encuentra
+          },
+        );
+        log('🔍 SESSION: Parsed user type as: ${userType.name}');
 
         final user = UserEntity(
           id: userId,
@@ -51,13 +65,15 @@ class SessionCubit extends Cubit<SessionState> {
     try {
       log('💾 SESSION: Saving session for ${user.email} (${user.typeAccount.name})');
       
+      log('💾 SESSION: Saving user type as string: ${user.typeAccount.name}');
+      
       // Guardar en SharedPreferences
       await Future.wait([
-        sharedPreferences.setString('jwt_token', token),
-        sharedPreferences.setString('user_id', user.id),
-        sharedPreferences.setString('user_email', user.email),
-        sharedPreferences.setString('user_name', user.name),
-        sharedPreferences.setString('user_type', user.typeAccount.toString()),
+        sharedPreferences.setString(_tokenKey, token),
+        sharedPreferences.setString(_userIdKey, user.id),
+        sharedPreferences.setString(_userEmailKey, user.email),
+        sharedPreferences.setString(_userNameKey, user.name),
+        sharedPreferences.setString(_userTypeKey, user.typeAccount.name),
       ]);
 
       // Emitir el nuevo estado
@@ -65,7 +81,6 @@ class SessionCubit extends Cubit<SessionState> {
       log('✅ SESSION: Session saved and state updated successfully');
     } catch (e) {
       log('❌ SESSION: Error saving session - $e');
-      // En caso de error, mantener estado no autenticado
       emit(const UnauthenticatedSessionState());
     }
   }
@@ -73,12 +88,17 @@ class SessionCubit extends Cubit<SessionState> {
   Future<void> signOut() async {
     try {
       log('🚪 SESSION: Signing out...');
-      await sharedPreferences.clear();
+      await Future.wait([
+        sharedPreferences.remove(_tokenKey),
+        sharedPreferences.remove(_userIdKey),
+        sharedPreferences.remove(_userEmailKey),
+        sharedPreferences.remove(_userNameKey),
+        sharedPreferences.remove(_userTypeKey),
+      ]);
       emit(const UnauthenticatedSessionState());
       log('✅ SESSION: Sign out completed');
     } catch (e) {
       log('❌ SESSION: Error signing out - $e');
-      // Forzar estado no autenticado incluso si hay error
       emit(const UnauthenticatedSessionState());
     }
   }

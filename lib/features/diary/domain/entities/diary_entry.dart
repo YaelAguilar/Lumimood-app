@@ -11,7 +11,7 @@ class DiaryEntry extends Equatable {
   final int intensity;
 
   const DiaryEntry({
-    required this.id,
+    this.id = '',
     required this.idPatient,
     required this.title,
     required this.content,

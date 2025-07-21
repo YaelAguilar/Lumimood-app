@@ -5,7 +5,6 @@ import '../../domain/entities/diary_entry.dart';
 import '../../domain/entities/emotion.dart';
 import '../../domain/repositories/diary_repository.dart';
 import '../datasources/diary_remote_datasource.dart';
-import '../models/diary_entry_model.dart';
 
 class DiaryRepositoryImpl implements DiaryRepository {
   final DiaryRemoteDataSource remoteDataSource;
@@ -25,16 +24,18 @@ class DiaryRepositoryImpl implements DiaryRepository {
   @override
   Future<Either<Failure, void>> saveDiaryEntry(DiaryEntry entry) async {
     try {
-      final diaryEntryModel = DiaryEntryModel(
-        id: entry.id,
-        idPatient: entry.idPatient,
+      await remoteDataSource.saveNote(
+        patientId: entry.idPatient,
         title: entry.title,
         content: entry.content,
-        date: entry.date,
-        emotion: entry.emotion,
-        intensity: entry.intensity,
       );
-      await remoteDataSource.saveDiaryEntry(diaryEntryModel);
+      if (entry.emotion != null) {
+        await remoteDataSource.saveEmotion(
+          patientId: entry.idPatient,
+          emotionId: entry.emotion!.id,
+          intensity: entry.intensity,
+        );
+      }
       return const Right(null);
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message));

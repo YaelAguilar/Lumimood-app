@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
+import 'dart:developer';
 import '../../../../core/error/failures.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../entities/user_entity.dart';
@@ -12,11 +13,16 @@ class LoginUser implements UseCase<UserEntity, LoginParams> {
 
   @override
   Future<Either<Failure, UserEntity>> call(LoginParams params) async {
-    return await repository.login(
+    log('🎯 LOGIN USE CASE: Called with email=${params.email}, typeAccount=${params.typeAccount.name}');
+    
+    final result = await repository.login(
       email: params.email,
       password: params.password,
       typeAccount: params.typeAccount,
     );
+    
+    log('🎯 LOGIN USE CASE: Repository returned result');
+    return result;
   }
 }
 

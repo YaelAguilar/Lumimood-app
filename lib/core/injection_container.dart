@@ -15,7 +15,7 @@ import '../features/authentication/domain/usecases/register_user.dart';
 import '../features/authentication/presentation/bloc/auth_bloc.dart';
 
 // Diary Imports
-import '../features/diary/data/datasources/diary_remote_datasource.dart'; // Corregido para importar remote
+import '../features/diary/data/datasources/diary_remote_datasource.dart';
 import '../features/diary/data/repositories/diary_repository_impl.dart';
 import '../features/diary/domain/repositories/diary_repository.dart';
 import '../features/diary/domain/usecases/get_emotions.dart';
@@ -23,7 +23,7 @@ import '../features/diary/domain/usecases/save_diary_entry.dart';
 import '../features/diary/presentation/bloc/diary_bloc.dart';
 
 // Notes Imports
-import '../features/notes/data/datasources/notes_remote_datasource.dart'; // Corregido para importar remote
+import '../features/notes/data/datasources/notes_remote_datasource.dart';
 import '../features/notes/data/repositories/notes_repository_impl.dart';
 import '../features/notes/domain/repositories/notes_repository.dart';
 import '../features/notes/domain/usecases/add_note.dart';
@@ -45,9 +45,6 @@ import '../features/statistics/data/repositories/statistics_repository_impl.dart
 import '../features/statistics/domain/repositories/statistics_repository.dart';
 import '../features/statistics/domain/usecases/get_statistics_data.dart';
 import '../features/statistics/presentation/bloc/statistics_bloc.dart';
-
-// Welcome Imports
-import '../features/welcome/presentation/bloc/welcome_bloc.dart';
 
 // Specialist Imports
 import '../features/specialist/presentation/bloc/specialist_bloc.dart';
@@ -74,7 +71,6 @@ Future<void> init() async {
   _initNotes();
   _initTasks();
   _initStatistics();
-  _initWelcome();
   _initSpecialist();
 }
 
@@ -122,10 +118,6 @@ void _initStatistics() {
   getIt.registerLazySingleton(() => GetStatisticsData(getIt()));
   getIt.registerLazySingleton<StatisticsRepository>(() => StatisticsRepositoryImpl(remoteDataSource: getIt()));
   getIt.registerLazySingleton<StatisticsRemoteDataSource>(() => StatisticsRemoteDataSourceImpl(apiClient: getIt()));
-}
-
-void _initWelcome() {
-  getIt.registerFactory(() => WelcomeBloc());
 }
 
 void _initSpecialist() {

@@ -1,52 +1,89 @@
 import 'dart:developer';
 import '../../domain/entities/user_entity.dart';
 
-// Modelo para la respuesta completa del login
 class UserModel extends UserEntity {
   const UserModel({
     required super.id,
     required super.email,
-    required super.name, // El nombre lo obtenemos del loginResult
+    required super.name,
     required super.typeAccount,
     required super.token,
     super.lastName,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
-    // Log para debug
     log('UserModel.fromJson - Raw JSON: $json');
     
-    // Verificar diferentes estructuras de respuesta
-    Map<String, dynamic>? loginResult;
+    // Unificar la obtención de datos y token
+    Map<String, dynamic> userData;
     String? token;
-    
+
     if (json.containsKey('loginResult')) {
-      // Estructura esperada: { "loginResult": {...}, "token": "..." }
-      loginResult = json['loginResult'] as Map<String, dynamic>?;
+      userData = json['loginResult'] as Map<String, dynamic>;
       token = json['token']?.toString();
     } else if (json.containsKey('user')) {
-      // Estructura alternativa: { "user": {...}, "token": "..." }
-      loginResult = json['user'] as Map<String, dynamic>?;
+      userData = json['user'] as Map<String, dynamic>;
       token = json['token']?.toString();
     } else {
-      // Estructura directa: el JSON es el usuario mismo
-      loginResult = json;
-      token = json['token']?.toString() ?? 'dummy_token';
+      userData = json;
+      token = json['token']?.toString();
     }
     
-    if (loginResult == null) {
-      throw Exception('No user data found in response: $json');
+    // Fail-Fast: Si un campo esencial es nulo, es un error irrecuperable.
+    final id = userData['id']?.toString() ?? userData['userId']?.toString();
+    if (id == null) {
+      throw Exception('Critical field "id" is null in user data: $userData');
+    }
+    if (token == null) {
+      throw Exception('Critical field "token" is null in response: $json');
+    }
+
+    return UserModel(
+      id: id,
+      email: userData['email']?.toString() ?? '',
+      name: userData['name']?.toString() ?? userData['firstName']?.toString() ?? 'Usuario',
+      typeAccount: _parseAccountType(userData['typeAccount'] ?? userData['accountType'] ?? userData['type']),
+      token: token,
+    );
+  }
+  
+  // Factory method para combinar login response con información de profesional
+  factory UserModel.fromLoginWithProfessional({
+    required Map<String, dynamic> loginJson,
+    Map<String, dynamic>? professionalJson,
+  }) {
+    log('UserModel.fromLoginWithProfessional - Login JSON: $loginJson');
+    log('UserModel.fromLoginWithProfessional - Professional JSON: $professionalJson');
+    
+    final Map<String, dynamic> loginResult = loginJson['loginResult'] ?? loginJson;
+    final String? token = loginJson['token']?.toString();
+    
+    // Fail-Fast para campos críticos
+    final id = loginResult['id']?.toString();
+    if (id == null) {
+      throw Exception('Critical field "id" is null in login result: $loginResult');
+    }
+    if (token == null) {
+      throw Exception('Critical field "token" is null in login response: $loginJson');
     }
     
-    log('UserModel.fromJson - loginResult: $loginResult');
-    log('UserModel.fromJson - token: $token');
+    // Determinar tipo de cuenta y nombre de forma más limpia
+    final bool isSpecialist = professionalJson != null;
+    final AccountType accountType = isSpecialist ? AccountType.specialist : AccountType.patient;
+    
+    String name = professionalJson?['name']?.toString() ??
+                  professionalJson?['firstName']?.toString() ??
+                  loginResult['name']?.toString() ??
+                  (isSpecialist ? 'Especialista' : 'Paciente');
+
+    log('✅ User identified as ${accountType.name}: $name');
     
     return UserModel(
-      id: loginResult['id']?.toString() ?? loginResult['userId']?.toString() ?? 'user_${DateTime.now().millisecondsSinceEpoch}',
+      id: id,
       email: loginResult['email']?.toString() ?? '',
-      name: loginResult['name']?.toString() ?? loginResult['firstName']?.toString() ?? 'Usuario',
-      typeAccount: _parseAccountType(loginResult['typeAccount'] ?? loginResult['accountType'] ?? loginResult['type']),
-      token: token ?? 'dummy_token',
+      name: name,
+      typeAccount: accountType,
+      token: token,
     );
   }
   
