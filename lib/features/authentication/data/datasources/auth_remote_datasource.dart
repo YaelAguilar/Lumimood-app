@@ -29,9 +29,6 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       // Paso 1: Autenticar siempre contra el servicio de identidad.
       final response = await apiClient.post(
         '${ApiConfig.identityBaseUrl}/login',
-        // El backend de identidad ignora 'typeAccount', lo cual está bien.
-        // Lo enviamos porque la firma del método en ApiClient lo requiere implícitamente, 
-        // pero solo usamos 'email' y 'password' para la autenticación real.
         {'email': email, 'password': password, 'typeAccount': typeAccount},
       );
 
@@ -51,12 +48,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         throw ServerException('Respuesta de autenticación inválida del servidor.');
       }
 
-      // --- LÓGICA CORREGIDA Y MEJORADA ---
-      // Paso 2: Verificar el rol del usuario BASADO EN LA SELECCIÓN DE LA UI.
-      
       if (typeAccount == 'patient') {
-        // El usuario INTENTA iniciar sesión como paciente.
-        // Verificamos que esta credencial NO pertenezca a un especialista para evitar que un especialista entre como paciente.
         log('🔍 User wants to log in as Patient. Verifying they are NOT a specialist...');
         final professionalData = await checkProfessionalByCredentialId(credentialId);
 
@@ -92,7 +84,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         );
       }
     } on ServerException {
-      rethrow; // Relanzar excepciones ya manejadas.
+      rethrow;
     } catch (e) {
       log('Error in login request: $e');
       throw ServerException('Error de conexión: ${e.toString()}');
@@ -101,7 +93,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<void> register(RegisterParams params) async {
-    const url = ApiConfig.patientBaseUrl;
+    final url = ApiConfig.patientBaseUrl;
     
     final formattedBirthDate = DateFormat('dd-MM-yyyy').format(params.birthDate);
     final String genderValue = params.gender;

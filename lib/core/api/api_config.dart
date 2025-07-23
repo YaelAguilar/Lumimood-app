@@ -1,21 +1,18 @@
 import 'dart:developer';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 
 class ApiConfig {
-  // Cambia estas IPs según tu configuración
-  static const String _baseUrl = 'http://10.0.2.2'; // Para emulador Android
-  // static const String _baseUrl = 'http://localhost'; // Para web/desktop
-  // static const String _baseUrl = 'http://192.168.1.XXX'; // Para dispositivo físico
+  static String get _baseUrl => dotenv.env['BASE_URL'] ?? '';
+  static String get patientBaseUrl => dotenv.env['PATIENT_BASE_URL'] ?? '';
+  static String get professionalBaseUrl => dotenv.env['PROFESSIONAL_BASE_URL'] ?? '';
+  static String get diaryBaseUrl => dotenv.env['DIARY_BASE_URL'] ?? '';
+  static String get identityBaseUrl => dotenv.env['IDENTITY_BASE_URL'] ?? '';
+  static String get appointmentBaseUrl => dotenv.env['APPOINTMENT_BASE_URL'] ?? '';
 
-  static const String patientBaseUrl = '$_baseUrl:3000/patient';
-  static const String professionalBaseUrl = '$_baseUrl:3001/professional';
-  static const String identityBaseUrl = '$_baseUrl:3002/identity';
-  static const String diaryBaseUrl = '$_baseUrl:3003';
-  static const String appointmentBaseUrl = '$_baseUrl:3004/appointment';
-
-  /// Imprime la configuración actual de las URLs
   static void printConfiguration() {
     log('🌐 API CONFIG:');
-    log('  Base URL: $_baseUrl');
+    log('  Base URL: [32m$_baseUrl[0m');
     log('  Identity: $identityBaseUrl');
     log('  Patient: $patientBaseUrl');
     log('  Professional: $professionalBaseUrl');
@@ -25,9 +22,9 @@ class ApiConfig {
 
   /// Verifica si las URLs están configuradas correctamente
   static bool isConfigured() {
-    return _baseUrl.isNotEmpty && 
-           !_baseUrl.contains('localhost') || 
-           _baseUrl.contains('10.0.2.2') || 
-           _baseUrl.contains('192.168.');
+    return _baseUrl.isNotEmpty &&
+        !_baseUrl.contains('localhost') ||
+        _baseUrl.contains('10.0.2.2') ||
+        _baseUrl.contains('192.168.');
   }
 }

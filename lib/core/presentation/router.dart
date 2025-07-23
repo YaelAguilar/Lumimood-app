@@ -1,7 +1,9 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/authentication/presentation/bloc/auth_bloc.dart';
-import '../../features/authentication/presentation/pages/authentication_page.dart';
+import '../../features/authentication/presentation/pages/login_page.dart';
+import '../../features/authentication/presentation/pages/register_page.dart';
+import '../../features/authentication/presentation/pages/forgot_password_page.dart';
 import '../../features/diary/presentation/bloc/diary_bloc.dart';
 import '../../features/diary/presentation/pages/diary_page.dart';
 import '../../features/notes/domain/entities/note.dart';
@@ -24,17 +26,35 @@ class AppRouter {
         name: 'welcome',
         builder: (context, state) => const WelcomePage(),
       ),
-      GoRoute(
-        path: '/auth',
-        name: 'auth',
-        builder: (context, state) {
+      
+      // Authentication routes with shared BlocProvider
+      ShellRoute(
+        builder: (context, state, child) {
           return BlocProvider(
             create: (context) => getIt<AuthBloc>(),
-            child: const AuthenticationPage(),
+            child: child,
           );
         },
+        routes: [
+          GoRoute(
+            path: '/login',
+            name: 'login',
+            builder: (context, state) => const LoginPage(),
+          ),
+          GoRoute(
+            path: '/register',
+            name: 'register',
+            builder: (context, state) => const RegisterPage(),
+          ),
+          GoRoute(
+            path: '/forgot-password',
+            name: 'forgot_password',
+            builder: (context, state) => const ForgotPasswordPage(),
+          ),
+        ],
       ),
       
+      // Patient routes
       GoRoute(
         path: '/diary', 
         name: 'diary', 
@@ -45,11 +65,26 @@ class AppRouter {
           );
         }
       ),
-
-      GoRoute(path: '/statistics', name: 'statistics', builder: (context, state) => const StatisticsPage()),
-      GoRoute(path: '/tasks', name: 'tasks', builder: (context, state) => const TasksPage()),
-      GoRoute(path: '/notes', name: 'notes', builder: (context, state) => const NotesPage()),
-      GoRoute(path: '/create-note', name: 'create-note', builder: (context, state) => const CreateNotePage()),
+      GoRoute(
+        path: '/statistics', 
+        name: 'statistics', 
+        builder: (context, state) => const StatisticsPage()
+      ),
+      GoRoute(
+        path: '/tasks', 
+        name: 'tasks', 
+        builder: (context, state) => const TasksPage()
+      ),
+      GoRoute(
+        path: '/notes', 
+        name: 'notes', 
+        builder: (context, state) => const NotesPage()
+      ),
+      GoRoute(
+        path: '/create-note', 
+        name: 'create-note', 
+        builder: (context, state) => const CreateNotePage()
+      ),
       GoRoute(
         path: '/note-detail',
         name: 'note_detail',
@@ -61,13 +96,10 @@ class AppRouter {
         },
       ),
 
-      // --- CAMBIO APLICADO Y DEFINITIVO ---
+      // Specialist routes
       ShellRoute(
         builder: (context, state, child) {
-          // Este BlocProvider se crea UNA SOLA VEZ cuando se entra a esta sección.
           return BlocProvider(
-            // El operador '..' (cascade) nos permite llamar a .add() en el BLoC
-            // inmediatamente después de que es creado.
             create: (context) => getIt<SpecialistBloc>()..add(LoadSpecialistDashboard()),
             child: child,
           );
@@ -77,7 +109,6 @@ class AppRouter {
             path: '/specialist-home',
             name: 'specialist_home',
             builder: (context, state) {
-              // La página ya no hace nada más que mostrarse.
               return const SpecialistHomePage();
             },
           ),
