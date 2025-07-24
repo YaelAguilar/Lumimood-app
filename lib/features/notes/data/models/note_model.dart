@@ -14,7 +14,7 @@ class NoteModel extends Note {
     try {
       log('📝 NOTE MODEL: Parsing JSON: $json');
       
-      // Extraer el ID - puede venir en diferentes campos
+      // Extraer el ID - el microservicio probablemente devuelve un UUID
       String id;
       if (json.containsKey('idRecNote')) {
         id = json['idRecNote'].toString();
@@ -36,8 +36,7 @@ class NoteModel extends Note {
       } else if (json.containsKey('patient_id')) {
         patientId = json['patient_id'].toString();
       } else {
-        patientId = 'unknown';
-        log('⚠️ NOTE MODEL: No patientId found, using: $patientId');
+        throw Exception('No se encontró el ID del paciente en la respuesta');
       }
 
       // Extraer title
@@ -89,15 +88,7 @@ class NoteModel extends Note {
       log('❌ NOTE MODEL: Error parsing JSON: $e');
       log('❌ NOTE MODEL: Stack trace: $stackTrace');
       log('❌ NOTE MODEL: JSON was: $json');
-      
-      // Retornar un modelo por defecto en caso de error crítico
-      return NoteModel(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        patientId: 'error',
-        title: 'Error de parsing',
-        content: 'Esta nota no se pudo cargar correctamente.',
-        date: DateTime.now(),
-      );
+      rethrow;
     }
   }
 
@@ -109,7 +100,12 @@ class NoteModel extends Note {
     };
   }
 
-  // Método para debug
+  Map<String, dynamic> toJsonForUpdate() {
+    return {
+      'content': content,
+    };
+  }
+
   @override
   String toString() {
     return 'NoteModel(id: $id, patientId: $patientId, title: "$title", content: "${content.length} chars", date: $date)';

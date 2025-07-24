@@ -29,6 +29,7 @@ import '../features/notes/data/repositories/notes_repository_impl.dart';
 import '../features/notes/domain/repositories/notes_repository.dart';
 import '../features/notes/domain/usecases/add_note.dart';
 import '../features/notes/domain/usecases/get_notes.dart';
+import '../features/notes/domain/usecases/update_note.dart';
 import '../features/notes/presentation/bloc/notes_bloc.dart';
 
 // Tasks Imports
@@ -110,11 +111,17 @@ void _initDiary() {
 
 void _initNotes() {
   // Blocs
-  getIt.registerFactory(() => NotesBloc(getNotes: getIt(), addNote: getIt(), sessionCubit: getIt()));
+  getIt.registerFactory(() => NotesBloc(
+    getNotes: getIt(), 
+    addNote: getIt(), 
+    updateNote: getIt(),
+    sessionCubit: getIt()
+  ));
 
   // Use cases
   getIt.registerLazySingleton(() => GetNotes(getIt()));
   getIt.registerLazySingleton(() => AddNote(getIt()));
+  getIt.registerLazySingleton(() => UpdateNote(getIt()));
   
   // Repositories and DataSources
   getIt.registerLazySingleton<NotesRepository>(() => NotesRepositoryImpl(remoteDataSource: getIt()));

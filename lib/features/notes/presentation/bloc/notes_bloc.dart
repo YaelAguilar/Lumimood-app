@@ -5,6 +5,7 @@ import '../../../../core/session/session_cubit.dart';
 import '../../domain/entities/note.dart';
 import '../../domain/usecases/add_note.dart';
 import '../../domain/usecases/get_notes.dart';
+import '../../domain/usecases/update_note.dart';
 
 part 'notes_event.dart';
 part 'notes_state.dart';
@@ -12,20 +13,24 @@ part 'notes_state.dart';
 class NotesBloc extends Bloc<NotesEvent, NotesState> {
   final GetNotes getNotes;
   final AddNote addNote;
+  final UpdateNote updateNote;
   final SessionCubit sessionCubit;
 
   NotesBloc({
     required this.getNotes,
     required this.addNote,
+    required this.updateNote,
     required this.sessionCubit,
   }) : super(const NotesState()) {
     on<LoadNotes>(_onLoadNotes);
     on<AddNewNote>(_onAddNewNote);
+    on<UpdateExistingNote>(_onUpdateNote);
   }
 
   String? get _patientId {
     final state = sessionCubit.state;
     if (state is AuthenticatedSessionState) {
+      //print('🔍 DEBUG: Patient ID from session: ${state.user.id}');
       log('📝 NOTES BLOC: Patient ID found - ${state.user.id}');
       return state.user.id;
     }
@@ -65,6 +70,9 @@ class NotesBloc extends Bloc<NotesEvent, NotesState> {
           for (int i = 0; i < notes.length; i++) {
             log('📝 NOTES BLOC: Note ${i + 1}: "${notes[i].title}" (${notes[i].date})');
           }
+          // Ordenar notas por fecha, más recientes primero
+          notes.sort((a, b) => b.date.compareTo(a.date));
+          
           emit(state.copyWith(
             status: NotesStatus.loaded, 
             notes: notes,
@@ -121,11 +129,16 @@ class NotesBloc extends Bloc<NotesEvent, NotesState> {
             errorMessage: failure.message,
           ));
         },
-        (_) {
-          log('✅ NOTES BLOC: Note added successfully, reloading notes...');
-          emit(state.copyWith(creationStatus: NoteCreationStatus.success));
-          // Recargar las notas después de agregar una nueva
-          add(LoadNotes());
+        (newNote) {
+          log('✅ NOTES BLOC: Note added successfully with ID: ${newNote.id}');
+          
+          // Agregar la nueva nota a la lista actual
+          final updatedNotes = List<Note>.from(state.notes)..insert(0, newNote);
+          
+          emit(state.copyWith(
+            creationStatus: NoteCreationStatus.success,
+            notes: updatedNotes,
+          ));
         },
       );
     } catch (e) {
@@ -142,4 +155,63 @@ class NotesBloc extends Bloc<NotesEvent, NotesState> {
       emit(state.copyWith(creationStatus: NoteCreationStatus.initial));
     }
   }
+
+Future<void> _onUpdateNote(UpdateExistingNote event, Emitter<NotesState> emit) async {
+  log('📝 NOTES BLOC: UpdateNote event received - Note ID: ${event.noteId}');
+  
+  emit(state.copyWith(updateStatus: NoteUpdateStatus.loading));
+  
+  try {
+    final result = await updateNote(UpdateNoteParams(
+      noteId: event.noteId,
+      content: event.content,
+    ));
+
+    result.fold(
+      (failure) {
+        log('❌ NOTES BLOC: Failed to update note - ${failure.message}');
+        emit(state.copyWith(
+          updateStatus: NoteUpdateStatus.error,
+          errorMessage: failure.message,
+        ));
+      },
+      (updatedNote) {
+        log('✅ NOTES BLOC: Note updated successfully');
+        
+        // Actualizar la nota en la lista manteniendo el orden
+        final updatedNotes = state.notes.map((note) {
+          if (note.id == event.noteId) {
+            // Crear una nueva nota con el contenido actualizado
+            return Note(
+              id: note.id,
+              patientId: note.patientId,
+              title: note.title,
+              content: event.content, // Usar el contenido nuevo
+              date: note.date,
+            );
+          }
+          return note;
+        }).toList();
+        
+        emit(state.copyWith(
+          updateStatus: NoteUpdateStatus.success,
+          notes: updatedNotes,
+        ));
+      },
+    );
+  } catch (e) {
+    log('💥 NOTES BLOC: Unexpected error updating note - $e');
+    emit(state.copyWith(
+      updateStatus: NoteUpdateStatus.error,
+      errorMessage: 'Error inesperado: ${e.toString()}'
+    ));
+  }
+  
+  // Reset update status
+  await Future.delayed(const Duration(milliseconds: 500));
+  if (!isClosed) {
+    emit(state.copyWith(updateStatus: NoteUpdateStatus.initial));
+  }
+}
+
 }

@@ -22,7 +22,27 @@ class NotesRepositoryImpl implements NotesRepository {
   }
 
   @override
-  Future<Either<Failure, void>> addNote({
+  Future<Either<Failure, List<Note>>> getNotesByDate(String patientId, String date) async {
+    try {
+      final remoteNotes = await remoteDataSource.getNotesByDate(patientId, date);
+      return Right(remoteNotes);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Note>> getNote(String noteId) async {
+    try {
+      final note = await remoteDataSource.getNote(noteId);
+      return Right(note);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Note>> addNote({
     required String patientId,
     required String title,
     required String content,
@@ -35,7 +55,30 @@ class NotesRepositoryImpl implements NotesRepository {
         content: content,
         date: DateTime.now(), // La API asigna la fecha
       );
-      await remoteDataSource.addNote(newNote);
+      final createdNote = await remoteDataSource.addNote(newNote);
+      return Right(createdNote);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Note>> updateNote({
+    required String noteId,
+    required String content,
+  }) async {
+    try {
+      final updatedNote = await remoteDataSource.updateNote(noteId, content);
+      return Right(updatedNote);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> deleteNote(String noteId) async {
+    try {
+      await remoteDataSource.deleteNote(noteId);
       return const Right(null);
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message));

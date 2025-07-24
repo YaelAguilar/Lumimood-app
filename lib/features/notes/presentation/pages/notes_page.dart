@@ -240,9 +240,22 @@ class _NoteCard extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       color: Colors.white.withAlpha(220),
       child: InkWell(
-        onTap: () {
+        onTap: () async {
           HapticFeedback.lightImpact();
-          context.pushNamed('note_detail', extra: note);
+          final result = await context.pushNamed('note_detail', extra: note);
+          
+          if (result != null && result is Map<String, dynamic> && context.mounted) {
+            final action = result['action'];
+            final noteId = result['noteId'];
+            
+            if (action == 'update') {
+              final content = result['content'];
+              context.read<NotesBloc>().add(UpdateExistingNote(
+                noteId: noteId,
+                content: content,
+              ));
+            }
+          }
         },
         borderRadius: BorderRadius.circular(20),
         child: Padding(

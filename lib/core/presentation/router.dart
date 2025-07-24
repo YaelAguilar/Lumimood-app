@@ -82,7 +82,7 @@ class AppRouter {
       ),
       GoRoute(
         path: '/create-note', 
-        name: 'create-note', 
+        name: 'create_note', 
         builder: (context, state) => const CreateNotePage()
       ),
       GoRoute(

@@ -9,3 +9,9 @@ final class AddNewNote extends NotesEvent {
   final String content;
   AddNewNote({required this.title, required this.content});
 }
+
+final class UpdateExistingNote extends NotesEvent {
+  final String noteId;
+  final String content;
+  UpdateExistingNote({required this.noteId, required this.content});
+}

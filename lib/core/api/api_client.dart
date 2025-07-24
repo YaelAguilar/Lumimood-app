@@ -10,13 +10,14 @@ class ApiClient {
 
   String? get _token => _sharedPreferences.getString('jwt_token');
 
-  Future<Map<String, String>> _getHeaders() async {
-    final token = _token;
-    return {
-      'Content-Type': 'application/json; charset=UTF-8',
-      if (token != null) 'Authorization': 'Bearer $token',
-    };
-  }
+Future<Map<String, String>> _getHeaders() async {
+  final token = _token;
+  //print('🔍 DEBUG: Token in headers: ${token != null ? "Token present (${token.length} chars)" : "No token"}');
+  return {
+    'Content-Type': 'application/json; charset=UTF-8',
+    if (token != null) 'Authorization': 'Bearer $token',
+  };
+}
 
   Future<http.Response> get(String url) async {
     final headers = await _getHeaders();
