@@ -14,9 +14,4 @@ final class IntensityChanged extends DiaryEvent {
   IntensityChanged(this.intensity);
 }
 
-final class SaveNoteButtonPressed extends DiaryEvent {
-  final String title;
-  final String content;
-
-  SaveNoteButtonPressed({required this.title, required this.content});
-}
+final class SaveEmotionButtonPressed extends DiaryEvent {}

@@ -5,9 +5,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import '../../../../core/injection_container.dart';
 import '../../../../core/presentation/theme.dart';
 import '../../../../core/session/session_cubit.dart';
+import '../../../notes/domain/entities/note.dart';
 import '../../../welcome/presentation/widgets/animated_background.dart';
 import '../bloc/diary_bloc.dart';
 import '../widgets/emotion_button.dart';
@@ -53,7 +55,7 @@ class _DiaryViewState extends State<_DiaryView> {
               ),
             );
         }
-        if (state.isNoteSaved) {
+        if (state.isEmotionSaved) {
           HapticFeedback.lightImpact();
           ScaffoldMessenger.of(context)
             ..hideCurrentSnackBar()
@@ -63,7 +65,7 @@ class _DiaryViewState extends State<_DiaryView> {
                   children: [
                     Icon(Icons.check_circle, color: Colors.white, size: 20),
                     SizedBox(width: 12),
-                    Text('Nota guardada con éxito'),
+                    Text('Emoción guardada con éxito'),
                   ],
                 ),
                 backgroundColor: AppTheme.primaryColor,
@@ -131,7 +133,7 @@ class _DiaryViewState extends State<_DiaryView> {
                         const SizedBox(height: 24),
                         const _EmotionsSection(),
                         const SizedBox(height: 24),
-                        const _NoteSection(),
+                        const _RecentNotesSection(),
                         const SizedBox(height: 40),
                       ],
                     ),
@@ -224,7 +226,7 @@ class _WelcomeCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Comparte tus emociones y pensamientos del día',
+              'Selecciona tu emoción y registra tu estado actual',
               style: GoogleFonts.interTight(
                 textStyle: textTheme.bodyMedium,
                 color: AppTheme.primaryText.withAlpha((0.6 * 255).round()),
@@ -484,6 +486,68 @@ class _EmotionsSectionState extends State<_EmotionsSection> {
                   );
                 },
               ),
+            
+            // Intensity Slider Section
+            const SizedBox(height: 24),
+            BlocBuilder<DiaryBloc, DiaryState>(
+              buildWhen: (p, c) => p.selectedEmotion != c.selectedEmotion || p.intensity != c.intensity,
+              builder: (context, state) {
+                if (state.selectedEmotion == null) {
+                  return const SizedBox.shrink();
+                }
+                
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Intensidad: ${state.intensity.round()}',
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: state.selectedEmotion?.color,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Slider(
+                      value: state.intensity,
+                      min: 1,
+                      max: 10,
+                      divisions: 9,
+                      activeColor: state.selectedEmotion?.color,
+                      label: state.intensity.round().toString(),
+                      onChanged: (value) {
+                        context.read<DiaryBloc>().add(IntensityChanged(value));
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: state.selectedEmotion?.color ?? AppTheme.primaryColor,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size(double.infinity, 56),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          elevation: 8,
+                          shadowColor: (state.selectedEmotion?.color ?? AppTheme.primaryColor).withAlpha((0.4 * 255).round()),
+                        ),
+                        onPressed: () {
+                          HapticFeedback.mediumImpact();
+                          context.read<DiaryBloc>().add(SaveEmotionButtonPressed());
+                        },
+                        icon: const Icon(Icons.save_rounded),
+                        label: Text(
+                          'Guardar Emoción',
+                          style: textTheme.titleMedium?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ).animate().fadeIn(duration: 400.ms);
+              },
+            ),
           ],
         ),
       ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.2),
@@ -491,8 +555,28 @@ class _EmotionsSectionState extends State<_EmotionsSection> {
   }
 }
 
-class _NoteSection extends StatelessWidget {
-  const _NoteSection();
+class _RecentNotesSection extends StatefulWidget {
+  const _RecentNotesSection();
+
+  @override
+  State<_RecentNotesSection> createState() => _RecentNotesSectionState();
+}
+
+class _RecentNotesSectionState extends State<_RecentNotesSection> {
+  late PageController _pageController;
+  int _currentPage = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -529,7 +613,7 @@ class _NoteSection extends StatelessWidget {
                     ),
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: const Icon(Icons.edit_note, color: AppTheme.primaryColor, size: 24),
+                  child: const Icon(Icons.library_books, color: AppTheme.primaryColor, size: 24),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -537,14 +621,14 @@ class _NoteSection extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Escribe tu día',
+                        'Notas Recientes',
                         style: GoogleFonts.interTight(
                           textStyle: textTheme.titleLarge,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       Text(
-                        'Comparte tus pensamientos y experiencias',
+                        'Tus últimas reflexiones',
                         style: GoogleFonts.interTight(
                           textStyle: textTheme.bodySmall,
                           color: AppTheme.primaryText.withAlpha((0.6 * 255).round()),
@@ -553,10 +637,82 @@ class _NoteSection extends StatelessWidget {
                     ],
                   ),
                 ),
+                TextButton(
+                  onPressed: () => context.pushNamed('notes'),
+                  child: Text(
+                    'Ver todas',
+                    style: GoogleFonts.interTight(
+                      textStyle: textTheme.bodyMedium,
+                      color: AppTheme.primaryColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 24),
-            const _NoteCard(),
+            BlocBuilder<DiaryBloc, DiaryState>(
+              buildWhen: (p, c) => p.recentNotes != c.recentNotes || p.status != c.status,
+              builder: (context, state) {
+                if (state.status == DiaryStatus.loading) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(32.0),
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
+                }
+                
+                if (state.recentNotes.isEmpty) {
+                  return _EmptyNotesWidget();
+                }
+
+                return Column(
+                  children: [
+                    SizedBox(
+                      height: 200,
+                      child: PageView.builder(
+                        controller: _pageController,
+                        itemCount: state.recentNotes.length,
+                        onPageChanged: (index) {
+                          setState(() {
+                            _currentPage = index;
+                          });
+                        },
+                        itemBuilder: (context, index) {
+                          final note = state.recentNotes[index];
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                            child: _NoteCarouselCard(note: note),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    // Page Indicator (Dots)
+                    if (state.recentNotes.length > 1)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(
+                          state.recentNotes.length,
+                          (index) => AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            margin: const EdgeInsets.symmetric(horizontal: 4),
+                            height: 8,
+                            width: _currentPage == index ? 24 : 8,
+                            decoration: BoxDecoration(
+                              color: _currentPage == index 
+                                  ? AppTheme.primaryColor 
+                                  : AppTheme.primaryColor.withAlpha((0.3 * 255).round()),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
           ],
         ),
       ).animate().fadeIn(delay: 600.ms).slideY(begin: 0.2),
@@ -564,183 +720,156 @@ class _NoteSection extends StatelessWidget {
   }
 }
 
-class _NoteCard extends StatefulWidget {
-  const _NoteCard();
-
-  @override
-  State<_NoteCard> createState() => _NoteCardState();
-}
-
-class _NoteCardState extends State<_NoteCard> {
-  late final TextEditingController _titleController;
-  late final TextEditingController _contentController;
-  bool _isExpanded = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _titleController = TextEditingController();
-    _contentController = TextEditingController();
-  }
-
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _contentController.dispose();
-    super.dispose();
-  }
-
+class _EmptyNotesWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     
-    return BlocBuilder<DiaryBloc, DiaryState>(
-      buildWhen: (p, c) => p.selectedEmotion != c.selectedEmotion || p.intensity != c.intensity,
-      builder: (context, state) {
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 500),
-          curve: Curves.easeOutCubic,
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                state.selectedEmotion?.color.withAlpha((0.05 * 255).round()) ?? Colors.grey.shade50,
-                state.selectedEmotion?.color.withAlpha((0.02 * 255).round()) ?? Colors.grey.shade100,
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+    return Container(
+      height: 150,
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.note_add_outlined,
+              size: 48,
+              color: Colors.grey.shade400,
             ),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: state.selectedEmotion?.color.withAlpha((0.2 * 255).round()) ?? AppTheme.alternate,
-              width: 1.5,
+            const SizedBox(height: 12),
+            Text(
+              'No tienes notas aún',
+              style: textTheme.titleMedium?.copyWith(
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w500,
+              ),
             ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextFormField(
-                controller: _titleController,
-                decoration: InputDecoration(
-                  hintText: 'Dale un título a tu día...',
-                  hintStyle: textTheme.bodyLarge?.copyWith(color: Colors.grey.shade400),
-                  border: InputBorder.none,
-                  prefixIcon: Icon(
-                    Icons.title_rounded, 
-                    color: state.selectedEmotion?.color ?? AppTheme.primaryColor,
-                  ),
-                ),
-                style: textTheme.bodyLarge?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.primaryText,
-                ),
-                textCapitalization: TextCapitalization.sentences,
-                onTap: () {
-                  if (!_isExpanded) {
-                    setState(() => _isExpanded = true);
-                  }
-                },
+            const SizedBox(height: 8),
+            Text(
+              'Crea tu primera nota tocando aquí',
+              style: textTheme.bodySmall?.copyWith(
+                color: Colors.grey.shade500,
               ),
-              const SizedBox(height: 16),
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                height: _isExpanded ? null : 120,
-                child: TextFormField(
-                  controller: _contentController,
-                  decoration: InputDecoration(
-                    hintText: 'Escribe sobre tus pensamientos, eventos, lo que quieras...\n\n¿Qué te hizo sentir así?\n¿Qué fue lo mejor del día?\n¿Hay algo que te preocupa?',
-                    hintStyle: textTheme.bodyMedium?.copyWith(color: Colors.grey.shade400),
-                    border: InputBorder.none,
-                    alignLabelWithHint: true,
-                  ),
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.primaryText,
-                    height: 1.6,
-                  ),
-                  maxLines: _isExpanded ? 8 : 3,
-                  minLines: 3,
-                  textCapitalization: TextCapitalization.sentences,
-                  onTap: () {
-                    if (!_isExpanded) {
-                      setState(() => _isExpanded = true);
-                    }
-                  },
-                ),
-              ),
-              const SizedBox(height: 16),
-              if (state.selectedEmotion != null) ...[
-                Text(
-                  'Intensidad: ${state.intensity.round()}',
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: state.selectedEmotion?.color,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Slider(
-                  value: state.intensity,
-                  min: 1,
-                  max: 10,
-                  divisions: 9,
-                  activeColor: state.selectedEmotion?.color,
-                  label: state.intensity.round().toString(),
-                  onChanged: (value) {
-                    context.read<DiaryBloc>().add(IntensityChanged(value));
-                  },
-                ),
-                const SizedBox(height: 16),
-              ],
-              BlocListener<DiaryBloc, DiaryState>(
-                listener: (context, state) {
-                  if (state.isNoteSaved) {
-                    _titleController.clear();
-                    _contentController.clear();
-                    setState(() => _isExpanded = false);
-                    FocusManager.instance.primaryFocus?.unfocus();
-                  }
-                },
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: state.selectedEmotion?.color ?? AppTheme.primaryColor,
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size(double.infinity, 56),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      elevation: 8,
-                      shadowColor: (state.selectedEmotion?.color ?? AppTheme.primaryColor).withAlpha((0.4 * 255).round()),
-                    ),
-                    onPressed: () {
-                      if (_titleController.text.trim().isEmpty && _contentController.text.trim().isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Por favor, escribe al menos un título o contenido'),
-                            backgroundColor: Colors.orange,
-                          ),
-                        );
-                        return;
-                      }
-                      
-                      HapticFeedback.mediumImpact();
-                      context.read<DiaryBloc>().add(SaveNoteButtonPressed(
-                            title: _titleController.text,
-                            content: _contentController.text,
-                          ));
-                    },
-                    icon: const Icon(Icons.save_rounded),
-                    label: Text(
-                      'Guardar Nota',
-                      style: textTheme.titleMedium?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
+            ),
+          ],
+        ),
+      ),
+    ).animate().fadeIn(duration: 400.ms);
+  }
+}
+
+class _NoteCarouselCard extends StatelessWidget {
+  final Note note;
+  
+  const _NoteCarouselCard({required this.note});
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final formattedDate = DateFormat.yMMMd('es_ES').format(note.date);
+    
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        context.pushNamed('note_detail', extra: note);
       },
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Colors.grey.shade50,
+              Colors.white,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: Colors.grey.shade200,
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha((0.05 * 255).round()),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    note.title,
+                    style: GoogleFonts.interTight(
+                      textStyle: textTheme.titleMedium,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primaryText,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withAlpha((0.1 * 255).round()),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    formattedDate,
+                    style: GoogleFonts.inter(
+                      textStyle: textTheme.bodySmall,
+                      color: AppTheme.primaryColor,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: Text(
+                note.content,
+                style: textTheme.bodyMedium?.copyWith(
+                  color: AppTheme.primaryText.withAlpha((0.7 * 255).round()),
+                  height: 1.5,
+                ),
+                maxLines: 4,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 16,
+                  color: AppTheme.primaryColor,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  'Leer más',
+                  style: GoogleFonts.inter(
+                    textStyle: textTheme.bodySmall,
+                    color: AppTheme.primaryColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

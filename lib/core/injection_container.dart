@@ -98,8 +98,13 @@ void _initAuth() {
 }
 
 void _initDiary() {
-  // Blocs
-  getIt.registerFactory(() => DiaryBloc(getEmotions: getIt(), saveDiaryEntry: getIt(), sessionCubit: getIt()));
+  // Blocs - Updated to include getNotes dependency
+  getIt.registerFactory(() => DiaryBloc(
+    getEmotions: getIt(), 
+    saveDiaryEntry: getIt(), 
+    getNotes: getIt(),  // Added getNotes dependency
+    sessionCubit: getIt()
+  ));
   
   // Use cases
   getIt.registerLazySingleton(() => GetEmotions(getIt()));

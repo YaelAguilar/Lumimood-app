@@ -7,7 +7,8 @@ class DiaryState extends Equatable {
   final List<Emotion> emotions;
   final Emotion? selectedEmotion;
   final double intensity;
-  final bool isNoteSaved;
+  final bool isEmotionSaved;
+  final List<Note> recentNotes;
   final String? errorMessage;
 
   const DiaryState({
@@ -15,7 +16,8 @@ class DiaryState extends Equatable {
     this.emotions = const [],
     this.selectedEmotion,
     this.intensity = 5.0,
-    this.isNoteSaved = false,
+    this.isEmotionSaved = false,
+    this.recentNotes = const [],
     this.errorMessage,
   });
 
@@ -24,7 +26,8 @@ class DiaryState extends Equatable {
     List<Emotion>? emotions,
     Emotion? selectedEmotion,
     double? intensity,
-    bool? isNoteSaved,
+    bool? isEmotionSaved,
+    List<Note>? recentNotes,
     String? errorMessage,
   }) {
     return DiaryState(
@@ -32,11 +35,12 @@ class DiaryState extends Equatable {
       emotions: emotions ?? this.emotions,
       selectedEmotion: selectedEmotion ?? this.selectedEmotion,
       intensity: intensity ?? this.intensity,
-      isNoteSaved: isNoteSaved ?? this.isNoteSaved,
+      isEmotionSaved: isEmotionSaved ?? this.isEmotionSaved,
+      recentNotes: recentNotes ?? this.recentNotes,
       errorMessage: errorMessage,
     );
   }
   
   @override
-  List<Object?> get props => [status, emotions, selectedEmotion, intensity, isNoteSaved, errorMessage];
+  List<Object?> get props => [status, emotions, selectedEmotion, intensity, isEmotionSaved, recentNotes, errorMessage];
 }
