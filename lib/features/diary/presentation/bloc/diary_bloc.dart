@@ -6,20 +6,20 @@ import '../../../notes/domain/entities/note.dart';
 import '../../../notes/domain/usecases/get_notes.dart';
 import '../../domain/entities/emotion.dart';
 import '../../domain/usecases/get_emotions.dart';
-import '../../domain/usecases/save_diary_entry.dart';
+import '../../domain/usecases/save_emotion.dart';
 
 part 'diary_event.dart';
 part 'diary_state.dart';
 
 class DiaryBloc extends Bloc<DiaryEvent, DiaryState> {
   final GetEmotions getEmotions;
-  final SaveDiaryEntry saveDiaryEntry;
+  final SaveEmotion saveEmotion;
   final GetNotes getNotes;
   final SessionCubit sessionCubit;
 
   DiaryBloc({
     required this.getEmotions,
-    required this.saveDiaryEntry,
+    required this.saveEmotion,
     required this.getNotes,
     required this.sessionCubit,
   }) : super(const DiaryState()) {
@@ -116,12 +116,10 @@ class DiaryBloc extends Bloc<DiaryEvent, DiaryState> {
     final patientId = (sessionCubit.state as AuthenticatedSessionState).user.id;
 
     try {
-      final result = await saveDiaryEntry(
-        SaveDiaryParams(
+      final result = await saveEmotion(
+        SaveEmotionParams(
           patientId: patientId,
-          title: 'Registro de emoción',
-          content: 'Emoción: ${state.selectedEmotion!.name} - Intensidad: ${state.intensity.round()}',
-          emotion: state.selectedEmotion,
+          emotionName: state.selectedEmotion!.name,
           intensity: state.intensity.round(),
         ),
       );

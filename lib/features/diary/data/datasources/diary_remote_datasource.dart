@@ -7,8 +7,7 @@ import '../models/emotion_model.dart';
 
 abstract class DiaryRemoteDataSource {
   Future<List<EmotionModel>> getAvailableEmotions();
-  Future<void> saveNote({required String patientId, required String title, required String content});
-  Future<void> saveEmotion({required String patientId, required String emotionId, required int intensity});
+  Future<void> saveEmotion({required String patientId, required String emotionName, required int intensity});
 }
 
 class DiaryRemoteDataSourceImpl implements DiaryRemoteDataSource {
@@ -23,26 +22,38 @@ class DiaryRemoteDataSourceImpl implements DiaryRemoteDataSource {
   }
 
   @override
-  Future<void> saveNote({required String patientId, required String title, required String content}) async {
-    final response = await apiClient.post(
-      '${ApiConfig.diaryBaseUrl}/record/note',
-      {'idPatient': patientId, 'title': title, 'content': content},
-    );
-    if (response.statusCode != 201) {
-      final errorBody = json.decode(response.body);
-      throw ServerException(errorBody['message'] ?? 'Failed to save note');
-    }
-  }
+  Future<void> saveEmotion({required String patientId, required String emotionName, required int intensity}) async {
+    log('📊 DIARY API: Saving emotion - Patient: $patientId, Emotion: $emotionName, Intensity: $intensity');
+    
+    final url = '${ApiConfig.diaryBaseUrl}/emotion';
+    final body = {
+      'idPatient': patientId,
+      'emotionName': emotionName,
+      'intensity': intensity,
+    };
 
-  @override
-  Future<void> saveEmotion({required String patientId, required String emotionId, required int intensity}) async {
-    final response = await apiClient.post(
-      '${ApiConfig.diaryBaseUrl}/record/emotion',
-      {'idPatient': patientId, 'emotionName': emotionId, 'intensity': intensity},
-    );
-    if (response.statusCode != 201) {
-      final errorBody = json.decode(response.body);
-      throw ServerException(errorBody['message'] ?? 'Failed to save emotion');
+    log('📊 DIARY API: Making POST request to: $url');
+    log('📊 DIARY API: Request body: $body');
+
+    try {
+      final response = await apiClient.post(url, body);
+      log('📊 DIARY API: Response status: ${response.statusCode}');
+      log('📊 DIARY API: Response body: ${response.body}');
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        log('✅ DIARY API: Emotion saved successfully');
+      } else {
+        final errorBody = json.decode(response.body);
+        final errorMessage = errorBody['message'] ?? 'Error al guardar la emoción';
+        log('❌ DIARY API: Failed to save emotion - $errorMessage');
+        throw ServerException(errorMessage);
+      }
+    } catch (e) {
+      if (e is ServerException) {
+        rethrow;
+      }
+      log('💥 DIARY API: Unexpected error: $e');
+      throw ServerException('Error de conexión: ${e.toString()}');
     }
   }
 }

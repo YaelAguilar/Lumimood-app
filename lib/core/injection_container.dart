@@ -20,7 +20,7 @@ import '../features/diary/data/datasources/diary_remote_datasource.dart';
 import '../features/diary/data/repositories/diary_repository_impl.dart';
 import '../features/diary/domain/repositories/diary_repository.dart';
 import '../features/diary/domain/usecases/get_emotions.dart';
-import '../features/diary/domain/usecases/save_diary_entry.dart';
+import '../features/diary/domain/usecases/save_emotion.dart';
 import '../features/diary/presentation/bloc/diary_bloc.dart';
 
 // Notes Imports
@@ -98,17 +98,17 @@ void _initAuth() {
 }
 
 void _initDiary() {
-  // Blocs - Updated to include getNotes dependency
+  // Blocs - Updated to include saveEmotion dependency
   getIt.registerFactory(() => DiaryBloc(
     getEmotions: getIt(), 
-    saveDiaryEntry: getIt(), 
-    getNotes: getIt(),  // Added getNotes dependency
+    saveEmotion: getIt(),  // Changed from saveDiaryEntry to saveEmotion
+    getNotes: getIt(),
     sessionCubit: getIt()
   ));
   
   // Use cases
   getIt.registerLazySingleton(() => GetEmotions(getIt()));
-  getIt.registerLazySingleton(() => SaveDiaryEntry(getIt()));
+  getIt.registerLazySingleton(() => SaveEmotion(getIt()));  // New use case
   
   getIt.registerLazySingleton<DiaryRepository>(() => DiaryRepositoryImpl(remoteDataSource: getIt()));
   getIt.registerLazySingleton<DiaryRemoteDataSource>(() => DiaryRemoteDataSourceImpl(apiClient: getIt()));

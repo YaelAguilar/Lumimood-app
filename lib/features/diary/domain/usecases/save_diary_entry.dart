@@ -1,4 +1,4 @@
-import 'package:dartz/dartz.dart';
+/*import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
 import '../../../../core/error/failures.dart';
 import '../../../../core/usecases/usecase.dart';
@@ -43,4 +43,4 @@ class SaveDiaryParams extends Equatable {
 
   @override
   List<Object?> get props => [patientId, title, content, emotion, intensity];
-}
+}*/

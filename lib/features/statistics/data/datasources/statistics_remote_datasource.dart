@@ -18,7 +18,7 @@ class StatisticsRemoteDataSourceImpl implements StatisticsRemoteDataSource {
   @override
   Future<StatisticsModel> getStatisticsData(String patientId, DateTime date) async {
     final formattedDate = DateFormat('yyyy-MM-dd').format(date);
-    final url = '${ApiConfig.diaryBaseUrl}/loggin/emotion/$patientId/$formattedDate';
+    final url = '${ApiConfig.diaryBaseUrl}/record/emotion/$patientId/$formattedDate';
     log('📊 STATISTICS API: Fetching from: $url');
     
     try {
@@ -30,59 +30,70 @@ class StatisticsRemoteDataSourceImpl implements StatisticsRemoteDataSource {
         final responseData = json.decode(response.body);
         log('📊 STATISTICS API: Parsed response: $responseData');
         
-        // Verificar si la respuesta contiene datos válidos
+        // Process the response data
         final Map<String, double> emotionCounts = {};
         
-        if (responseData is Map<String, dynamic>) {
-          // Buscar datos en diferentes claves posibles
-          List<dynamic>? loggingData;
-          
-          if (responseData.containsKey('loggingEmotion')) {
-            final rawData = responseData['loggingEmotion'];
-            if (rawData is List) {
-              loggingData = rawData;
-            } else if (rawData == null) {
-              log('📊 STATISTICS API: loggingEmotion is null, using empty data');
-              loggingData = [];
-            }
-          } else if (responseData.containsKey('data')) {
-            final rawData = responseData['data'];
-            if (rawData is List) {
-              loggingData = rawData;
-            } else if (rawData == null) {
-              loggingData = [];
+        if (responseData is List) {
+          // If response is directly a list of emotion records
+          for (var record in responseData) {
+            if (record is Map<String, dynamic>) {
+              final emotionName = record['emotionName']?.toString() ?? 'unknown';
+              final intensity = (record['intensity'] as num?)?.toDouble() ?? 0.0;
+              
+              // Aggregate intensities for same emotions (you could also count occurrences)
+              if (emotionCounts.containsKey(emotionName)) {
+                emotionCounts[emotionName] = emotionCounts[emotionName]! + intensity;
+              } else {
+                emotionCounts[emotionName] = intensity;
+              }
             }
           }
+        } else if (responseData is Map<String, dynamic>) {
+          // If response is wrapped in an object
+          List<dynamic>? records;
           
-          if (loggingData != null) {
-            for (var item in loggingData) {
-              if (item is Map<String, dynamic>) {
-                final emotionName = item['emotionName']?.toString() ?? 'unknown';
-                final count = (item['count'] as num?)?.toDouble() ?? 0.0;
-                emotionCounts[emotionName] = count;
+          if (responseData.containsKey('records')) {
+            records = responseData['records'] as List<dynamic>?;
+          } else if (responseData.containsKey('data')) {
+            records = responseData['data'] as List<dynamic>?;
+          } else if (responseData.containsKey('emotions')) {
+            records = responseData['emotions'] as List<dynamic>?;
+          }
+          
+          if (records != null) {
+            for (var record in records) {
+              if (record is Map<String, dynamic>) {
+                final emotionName = record['emotionName']?.toString() ?? 'unknown';
+                final intensity = (record['intensity'] as num?)?.toDouble() ?? 0.0;
+                
+                if (emotionCounts.containsKey(emotionName)) {
+                  emotionCounts[emotionName] = emotionCounts[emotionName]! + intensity;
+                } else {
+                  emotionCounts[emotionName] = intensity;
+                }
               }
             }
           }
         }
         
-        // Si no hay datos, crear datos por defecto
+        // If no data found, create default empty data
         if (emotionCounts.isEmpty) {
           log('📊 STATISTICS API: No emotion data found, using default empty data');
           emotionCounts['Sin datos'] = 0.0;
         }
 
-        final mockData = {
+        final processedData = {
           "labels": emotionCounts.keys.toList(),
           "values": emotionCounts.values.toList(),
         };
         
-        log('📊 STATISTICS API: Processed data: $mockData');
-        return StatisticsModel.fromJson(mockData);
+        log('📊 STATISTICS API: Processed data: $processedData');
+        return StatisticsModel.fromJson(processedData);
         
       } else if (response.statusCode == 404) {
         log('📊 STATISTICS API: No statistics found (404), returning empty data');
         return const StatisticsModel(
-          labels: ['Sin datos'],
+          labels: ['Sin registros'],
           values: [0.0],
         );
       } else {
@@ -93,9 +104,9 @@ class StatisticsRemoteDataSourceImpl implements StatisticsRemoteDataSource {
         rethrow;
       }
       log('💥 STATISTICS API: Error: $e');
-      // En caso de error, retornar datos vacíos en lugar de fallar
+      // In case of error, return empty data instead of failing
       return const StatisticsModel(
-        labels: ['Error'],
+        labels: ['Error de conexión'],
         values: [0.0],
       );
     }

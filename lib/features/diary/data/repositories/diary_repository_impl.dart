@@ -1,7 +1,6 @@
 import 'package:dartz/dartz.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/error/failures.dart';
-import '../../domain/entities/diary_entry.dart';
 import '../../domain/entities/emotion.dart';
 import '../../domain/repositories/diary_repository.dart';
 import '../datasources/diary_remote_datasource.dart';
@@ -22,20 +21,17 @@ class DiaryRepositoryImpl implements DiaryRepository {
   }
 
   @override
-  Future<Either<Failure, void>> saveDiaryEntry(DiaryEntry entry) async {
+  Future<Either<Failure, void>> saveEmotion({
+    required String patientId,
+    required String emotionName,
+    required int intensity,
+  }) async {
     try {
-      await remoteDataSource.saveNote(
-        patientId: entry.idPatient,
-        title: entry.title,
-        content: entry.content,
+      await remoteDataSource.saveEmotion(
+        patientId: patientId,
+        emotionName: emotionName,
+        intensity: intensity,
       );
-      if (entry.emotion != null) {
-        await remoteDataSource.saveEmotion(
-          patientId: entry.idPatient,
-          emotionId: entry.emotion!.id,
-          intensity: entry.intensity,
-        );
-      }
       return const Right(null);
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message));
