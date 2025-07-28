@@ -79,7 +79,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         emit(state.copyWith(status: FormStatus.error, errorMessage: failure.message));
       },
       (user) {
-        log('✅ AUTH BLOC: Login successful for user ${user.id}');
+        log('✅ AUTH BLOC: Login successful for user ${user.id} (${user.typeAccount.name})');
+        emit(state.copyWith(status: FormStatus.success)); // Aseguramos que se emita el estado de éxito
         sessionCubit.showSession(user, user.token);
       },
     );

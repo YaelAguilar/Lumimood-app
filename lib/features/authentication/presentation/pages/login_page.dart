@@ -45,7 +45,7 @@ class LoginPage extends StatelessWidget {
           listener: (context, state) {
             if (state is AuthenticatedSessionState) {
               if (state.user.typeAccount == AccountType.specialist) {
-                context.goNamed('specialist_dashsboard');
+                context.goNamed('specialist_dashboard'); // CORREGIDO: era 'specialist_dashsboard'
               } else {
                 context.goNamed('diary');
               }
