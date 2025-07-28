@@ -48,12 +48,12 @@ import '../features/statistics/domain/repositories/statistics_repository.dart';
 import '../features/statistics/domain/usecases/get_statistics_data.dart';
 import '../features/statistics/presentation/bloc/statistics_bloc.dart';
 
-// Specialist Imports
-import '../features/specialist/presentation/bloc/specialist_bloc.dart';
-import '../features/specialist/data/datasources/appointment_remote_datasource.dart';
-import '../features/specialist/data/repositories/appointment_repository_impl.dart';
-import '../features/specialist/domain/repositories/appointment_repository.dart';
-import '../features/specialist/domain/usecases/get_appointments_by_professional.dart';
+// Specialist Dashboard Imports
+import '../features/specialistdashboard/presentation/bloc/specialistdashboard_bloc.dart';
+import '../features/specialistdashboard/data/datasources/appointment_remote_datasource.dart';
+import '../features/specialistdashboard/data/repositories/appointment_repository_impl.dart';
+import '../features/specialistdashboard/domain/repositories/appointment_repository.dart';
+import '../features/specialistdashboard/domain/usecases/get_appointments_by_professional.dart';
 
 
 final getIt = GetIt.instance;
@@ -161,7 +161,7 @@ void _initStatistics() {
 
 void _initSpecialist() {
   // Blocs
-  getIt.registerFactory(() => SpecialistBloc(getAppointments: getIt(), sessionCubit: getIt()));
+  getIt.registerFactory(() => SpecialistDashboardBloc(getAppointments: getIt(), sessionCubit: getIt()));
   
   // Use cases
   getIt.registerLazySingleton(() => GetAppointmentsByProfessional(getIt()));

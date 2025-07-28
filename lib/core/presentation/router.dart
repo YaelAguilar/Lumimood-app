@@ -10,11 +10,12 @@ import '../../features/notes/domain/entities/note.dart';
 import '../../features/notes/presentation/pages/create_note_page.dart';
 import '../../features/notes/presentation/pages/note_detail_page.dart';
 import '../../features/notes/presentation/pages/notes_page.dart';
-import '../../features/specialist/presentation/bloc/specialist_bloc.dart';
-import '../../features/specialist/presentation/pages/specialist_home_page.dart';
+import '../../features/specialistdashboard/presentation/bloc/specialistdashboard_bloc.dart';
+import '../../features/specialistdashboard/presentation/pages/specialist_dashboard_page.dart';
 import '../../features/statistics/presentation/pages/statistics_page.dart';
 import '../../features/tasks/presentation/pages/tasks_page.dart';
 import '../../features/welcome/presentation/pages/welcome_page.dart';
+
 import '../injection_container.dart';
 
 class AppRouter {
@@ -100,16 +101,16 @@ class AppRouter {
       ShellRoute(
         builder: (context, state, child) {
           return BlocProvider(
-            create: (context) => getIt<SpecialistBloc>()..add(LoadSpecialistDashboard()),
+            create: (context) => getIt<SpecialistDashboardBloc>()..add(LoadDashboardData()),
             child: child,
           );
         },
         routes: [
           GoRoute(
-            path: '/specialist-home',
-            name: 'specialist_home',
+            path: '/specialist-dashboard',
+            name: 'specialist_dashboard',
             builder: (context, state) {
-              return const SpecialistHomePage();
+              return const SpecialistDashboardPage();
             },
           ),
         ],
