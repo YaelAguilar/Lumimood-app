@@ -23,34 +23,66 @@ final class AuthLoginWithEmailAndPasswordPressed extends AuthEvent {}
 
 final class AuthForgotPasswordRequested extends AuthEvent {}
 
-final class AuthNameChanged extends AuthEvent {
+// Eventos específicos para datos del paciente
+final class AuthPatientNameChanged extends AuthEvent {
   final String name;
-  AuthNameChanged(this.name);
+  AuthPatientNameChanged(this.name);
 }
 
-final class AuthLastNameChanged extends AuthEvent {
+final class AuthPatientLastNameChanged extends AuthEvent {
   final String lastName;
-  AuthLastNameChanged(this.lastName);
+  AuthPatientLastNameChanged(this.lastName);
 }
 
-final class AuthSecondLastNameChanged extends AuthEvent {
+final class AuthPatientSecondLastNameChanged extends AuthEvent {
   final String secondLastName;
-  AuthSecondLastNameChanged(this.secondLastName);
+  AuthPatientSecondLastNameChanged(this.secondLastName);
 }
 
-final class AuthGenderChanged extends AuthEvent {
+final class AuthPatientGenderChanged extends AuthEvent {
   final String gender;
-  AuthGenderChanged(this.gender);
+  AuthPatientGenderChanged(this.gender);
 }
 
-final class AuthBirthDateChanged extends AuthEvent {
+final class AuthPatientBirthDateChanged extends AuthEvent {
   final DateTime birthDate;
-  AuthBirthDateChanged(this.birthDate);
+  AuthPatientBirthDateChanged(this.birthDate);
 }
 
-final class AuthPhoneNumberChanged extends AuthEvent {
+final class AuthPatientPhoneNumberChanged extends AuthEvent {
   final String phoneNumber;
-  AuthPhoneNumberChanged(this.phoneNumber);
+  AuthPatientPhoneNumberChanged(this.phoneNumber);
+}
+
+// Eventos específicos para datos del especialista
+final class AuthSpecialistNameChanged extends AuthEvent {
+  final String name;
+  AuthSpecialistNameChanged(this.name);
+}
+
+final class AuthSpecialistLastNameChanged extends AuthEvent {
+  final String lastName;
+  AuthSpecialistLastNameChanged(this.lastName);
+}
+
+final class AuthSpecialistSecondLastNameChanged extends AuthEvent {
+  final String secondLastName;
+  AuthSpecialistSecondLastNameChanged(this.secondLastName);
+}
+
+final class AuthSpecialistGenderChanged extends AuthEvent {
+  final String gender;
+  AuthSpecialistGenderChanged(this.gender);
+}
+
+final class AuthSpecialistBirthDateChanged extends AuthEvent {
+  final DateTime birthDate;
+  AuthSpecialistBirthDateChanged(this.birthDate);
+}
+
+final class AuthSpecialistPhoneNumberChanged extends AuthEvent {
+  final String phoneNumber;
+  AuthSpecialistPhoneNumberChanged(this.phoneNumber);
 }
 
 final class AuthAccountTypeChanged extends AuthEvent {

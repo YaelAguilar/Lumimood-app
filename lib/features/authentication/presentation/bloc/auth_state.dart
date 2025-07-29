@@ -11,16 +11,27 @@ class AuthState extends Equatable {
   final FormStatus status;
   final String? errorMessage;
   final String? successMessage;
-  final String name;
-  final String lastName;
-  final String secondLastName;
-  final String gender;
-  final DateTime? birthDate;
-  final String phoneNumber;
-  final AccountType accountType;
+  
+  // Datos específicos del paciente
+  final String patientName;
+  final String patientLastName;
+  final String patientSecondLastName;
+  final String patientGender;
+  final DateTime? patientBirthDate;
+  final String patientPhoneNumber;
+  final String professionalId;
+  
+  // Datos específicos del especialista
+  final String specialistName;
+  final String specialistLastName;
+  final String specialistSecondLastName;
+  final String specialistGender;
+  final DateTime? specialistBirthDate;
+  final String specialistPhoneNumber;
   final String professionName;
   final String professionalLicense;
-  final String professionalId; // Nuevo campo
+  
+  final AccountType accountType;
 
   const AuthState({
     this.viewMode = AuthViewMode.login,
@@ -30,16 +41,24 @@ class AuthState extends Equatable {
     this.status = FormStatus.initial,
     this.errorMessage,
     this.successMessage,
-    this.name = '',
-    this.lastName = '',
-    this.secondLastName = '',
-    this.gender = 'Masculino',
-    this.birthDate,
-    this.phoneNumber = '',
-    this.accountType = AccountType.patient,
+    // Datos del paciente
+    this.patientName = '',
+    this.patientLastName = '',
+    this.patientSecondLastName = '',
+    this.patientGender = 'Masculino',
+    this.patientBirthDate,
+    this.patientPhoneNumber = '',
+    this.professionalId = '',
+    // Datos del especialista
+    this.specialistName = '',
+    this.specialistLastName = '',
+    this.specialistSecondLastName = '',
+    this.specialistGender = 'Masculino',
+    this.specialistBirthDate,
+    this.specialistPhoneNumber = '',
     this.professionName = 'psicologo',
     this.professionalLicense = '',
-    this.professionalId = '', // Nuevo campo
+    this.accountType = AccountType.patient,
   });
 
   AuthState copyWith({
@@ -50,16 +69,24 @@ class AuthState extends Equatable {
     FormStatus? status,
     String? errorMessage,
     String? successMessage,
-    String? name,
-    String? lastName,
-    String? secondLastName,
-    String? gender,
-    DateTime? birthDate,
-    String? phoneNumber,
-    AccountType? accountType,
+    // Datos del paciente
+    String? patientName,
+    String? patientLastName,
+    String? patientSecondLastName,
+    String? patientGender,
+    DateTime? patientBirthDate,
+    String? patientPhoneNumber,
+    String? professionalId,
+    // Datos del especialista
+    String? specialistName,
+    String? specialistLastName,
+    String? specialistSecondLastName,
+    String? specialistGender,
+    DateTime? specialistBirthDate,
+    String? specialistPhoneNumber,
     String? professionName,
     String? professionalLicense,
-    String? professionalId, // Nuevo campo
+    AccountType? accountType,
   }) {
     return AuthState(
       viewMode: viewMode ?? this.viewMode,
@@ -69,23 +96,37 @@ class AuthState extends Equatable {
       status: status ?? this.status,
       errorMessage: errorMessage,
       successMessage: successMessage,
-      name: name ?? this.name,
-      lastName: lastName ?? this.lastName,
-      secondLastName: secondLastName ?? this.secondLastName,
-      gender: gender ?? this.gender,
-      birthDate: birthDate ?? this.birthDate,
-      phoneNumber: phoneNumber ?? this.phoneNumber,
-      accountType: accountType ?? this.accountType,
+      // Datos del paciente
+      patientName: patientName ?? this.patientName,
+      patientLastName: patientLastName ?? this.patientLastName,
+      patientSecondLastName: patientSecondLastName ?? this.patientSecondLastName,
+      patientGender: patientGender ?? this.patientGender,
+      patientBirthDate: patientBirthDate ?? this.patientBirthDate,
+      patientPhoneNumber: patientPhoneNumber ?? this.patientPhoneNumber,
+      professionalId: professionalId ?? this.professionalId,
+      // Datos del especialista
+      specialistName: specialistName ?? this.specialistName,
+      specialistLastName: specialistLastName ?? this.specialistLastName,
+      specialistSecondLastName: specialistSecondLastName ?? this.specialistSecondLastName,
+      specialistGender: specialistGender ?? this.specialistGender,
+      specialistBirthDate: specialistBirthDate ?? this.specialistBirthDate,
+      specialistPhoneNumber: specialistPhoneNumber ?? this.specialistPhoneNumber,
       professionName: professionName ?? this.professionName,
       professionalLicense: professionalLicense ?? this.professionalLicense,
-      professionalId: professionalId ?? this.professionalId, // Nuevo campo
+      accountType: accountType ?? this.accountType,
     );
   }
 
   @override
   List<Object?> get props => [
         viewMode, email, password, isPasswordVisible, status, errorMessage,
-        successMessage, name, lastName, secondLastName, gender, birthDate,
-        phoneNumber, accountType, professionName, professionalLicense, professionalId, // Incluir en props
+        successMessage, 
+        // Datos del paciente
+        patientName, patientLastName, patientSecondLastName, patientGender, 
+        patientBirthDate, patientPhoneNumber, professionalId,
+        // Datos del especialista
+        specialistName, specialistLastName, specialistSecondLastName, specialistGender,
+        specialistBirthDate, specialistPhoneNumber, professionName, professionalLicense,
+        accountType,
       ];
 }

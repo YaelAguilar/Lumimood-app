@@ -36,25 +36,33 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<Either<Failure, void>> register(RegisterParams params) async {
+    log('🏛️ AUTH REPOSITORY: Attempting patient registration for email=${params.email}');
     try {
       await remoteDataSource.register(params);
+      log('✅ AUTH REPOSITORY: Patient registration successful');
       return const Right(null);
     } on ServerException catch (e) {
+      log('❌ AUTH REPOSITORY: Patient registration failed - ${e.message}');
       return Left(ServerFailure(e.message));
     } on Exception catch (e) {
-      return Left(ServerFailure('Error de red: ${e.toString()}'));
+      log('💥 AUTH REPOSITORY: Unexpected error during patient registration - $e');
+      return Left(ServerFailure('Error de red durante registro de paciente: ${e.toString()}'));
     }
   }
 
   @override
   Future<Either<Failure, void>> registerSpecialist(RegisterSpecialistParams params) async {
+    log('🏛️ AUTH REPOSITORY: Attempting specialist registration for email=${params.email}');
     try {
       await remoteDataSource.registerSpecialist(params);
+      log('✅ AUTH REPOSITORY: Specialist registration successful');
       return const Right(null);
     } on ServerException catch (e) {
+      log('❌ AUTH REPOSITORY: Specialist registration failed - ${e.message}');
       return Left(ServerFailure(e.message));
     } on Exception catch (e) {
-      return Left(ServerFailure('Error de red: ${e.toString()}'));
+      log('💥 AUTH REPOSITORY: Unexpected error during specialist registration - $e');
+      return Left(ServerFailure('Error de red durante registro de especialista: ${e.toString()}'));
     }
   }
 

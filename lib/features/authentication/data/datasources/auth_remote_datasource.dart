@@ -93,6 +93,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<void> register(RegisterParams params) async {
+    log('📝 REGISTER PATIENT: Starting patient registration process...');
     final url = ApiConfig.patientBaseUrl;
     
     final formattedBirthDate = DateFormat('dd-MM-yyyy').format(params.birthDate);
@@ -105,24 +106,48 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       "birthDate": formattedBirthDate,
       "gender": genderValue,
       "phone": params.phoneNumber,
-      "professionalId": params.professionalId, // Nuevo campo
+      "professionalId": params.professionalId,
       "email": params.email,
       "password": params.password,
     };
 
-    log('Sending registration request with body: $body');
+    log('📝 REGISTER PATIENT: Making POST request to: $url');
+    log('📝 REGISTER PATIENT: Request body: $body');
     
-    final response = await apiClient.post(url, body);
+    try {
+      final response = await apiClient.post(url, body, {
+        'X-Registration-Type': 'patient'
+      });
+      log('📝 REGISTER PATIENT: Response status: ${response.statusCode}');
+      log('📝 REGISTER PATIENT: Response body: ${response.body}');
 
-    if (response.statusCode != 201) {
-      final errorBody = json.decode(response.body);
-      log('Registration failed with status ${response.statusCode}: ${errorBody['message']}');
-      throw ServerException(errorBody['message'] ?? 'Error en el registro');
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        log('✅ REGISTER PATIENT: Patient registration successful');
+        return;
+      }
+
+      // Manejar errores específicos
+      String errorMessage;
+      try {
+        final errorBody = json.decode(response.body);
+        errorMessage = errorBody['message'] ?? 'Error desconocido en el registro del paciente';
+      } catch (e) {
+        errorMessage = 'Error de formato en la respuesta del servidor (${response.statusCode})';
+      }
+      
+      log('❌ REGISTER PATIENT: Registration failed with status ${response.statusCode}: $errorMessage');
+      throw ServerException('Error al registrar paciente: $errorMessage');
+      
+    } catch (e) {
+      if (e is ServerException) rethrow;
+      log('💥 REGISTER PATIENT: Unexpected error: $e');
+      throw ServerException('Error de conexión al registrar paciente: ${e.toString()}');
     }
   }
 
   @override
   Future<void> registerSpecialist(RegisterSpecialistParams params) async {
+    log('🩺 REGISTER SPECIALIST: Starting specialist registration process...');
     final url = ApiConfig.professionalBaseUrl;
     
     final formattedBirthDate = DateFormat('dd-MM-yyyy').format(params.birthDate);
@@ -138,22 +163,55 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       "password": params.password,
       "professionName": params.professionName,
       "professionalLicense": params.professionalLicense,
+      // Agregar un campo que identifique claramente que es un especialista
+      "registrationType": "specialist"
     };
 
-    log('Sending SPECIALIST registration request to $url with body: $body');
+    log('🩺 REGISTER SPECIALIST: Making POST request to: $url');
+    log('🩺 REGISTER SPECIALIST: Request body: $body');
     
-    final response = await apiClient.post(url, body);
+    try {
+      final response = await apiClient.post(url, body, {
+        'X-Registration-Type': 'specialist'
+      });
+      log('🩺 REGISTER SPECIALIST: Response status: ${response.statusCode}');
+      log('🩺 REGISTER SPECIALIST: Response body: ${response.body}');
 
-    if (response.statusCode != 201) {
-      final errorBody = json.decode(response.body);
-      log('Specialist registration failed with status ${response.statusCode}: ${errorBody['message']}');
-      throw ServerException(errorBody['message'] ?? 'Error en el registro del especialista');
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        log('✅ REGISTER SPECIALIST: Specialist registration successful');
+        return;
+      }
+
+      // Manejar errores específicos para especialistas
+      String errorMessage;
+      try {
+        final errorBody = json.decode(response.body);
+        
+        // Si el backend sigue devolviendo "error al crear el paciente", 
+        // mostrar un mensaje más claro
+        final originalMessage = errorBody['message']?.toString() ?? '';
+        if (originalMessage.toLowerCase().contains('paciente')) {
+          errorMessage = 'Error en el servidor: El backend está procesando incorrectamente el registro de especialista como paciente. Contacte al administrador.';
+        } else {
+          errorMessage = originalMessage.isEmpty ? 'Error desconocido en el registro del especialista' : originalMessage;
+        }
+      } catch (e) {
+        errorMessage = 'Error de formato en la respuesta del servidor (${response.statusCode})';
+      }
+      
+      log('❌ REGISTER SPECIALIST: Registration failed with status ${response.statusCode}: $errorMessage');
+      throw ServerException(errorMessage);
+      
+    } catch (e) {
+      if (e is ServerException) rethrow;
+      log('💥 REGISTER SPECIALIST: Unexpected error: $e');
+      throw ServerException('Error de conexión al registrar especialista: ${e.toString()}');
     }
   }
 
   @override
   Future<void> forgotPassword({required String email}) async {
-    log('API CALL: Simulating password reset for email: $email');
+    log('🔒 FORGOT PASSWORD: Simulating password reset for email: $email');
     await Future.delayed(const Duration(seconds: 1));
     if (email.isEmpty || !email.contains('@')) {
       throw ServerException('Correo inválido');

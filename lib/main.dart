@@ -8,6 +8,7 @@ import 'core/injection_container.dart' as di;
 import 'core/presentation/router.dart';
 import 'core/presentation/theme.dart';
 import 'core/session/session_cubit.dart';
+import 'core/api/api_config.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,6 +16,25 @@ void main() async {
   await dotenv.load();
 
   log('🚀 APP: Starting Lumimood application...');
+
+  // *** DEPURACIÓN: Verificar configuración de API ***
+  log('🔍 DEBUG: Verificando configuración de API...');
+  ApiConfig.printConfiguration();
+  
+  // Verificar URLs específicas
+  log('🔍 DEBUG: PATIENT_BASE_URL = ${ApiConfig.patientBaseUrl}');
+  log('🔍 DEBUG: PROFESSIONAL_BASE_URL = ${ApiConfig.professionalBaseUrl}');
+  log('🔍 DEBUG: IDENTITY_BASE_URL = ${ApiConfig.identityBaseUrl}');
+  
+  if (ApiConfig.patientBaseUrl.isEmpty) {
+    log('❌ ERROR: PATIENT_BASE_URL está vacía!');
+  }
+  if (ApiConfig.professionalBaseUrl.isEmpty) {
+    log('❌ ERROR: PROFESSIONAL_BASE_URL está vacía!');
+  }
+  if (ApiConfig.identityBaseUrl.isEmpty) {
+    log('❌ ERROR: IDENTITY_BASE_URL está vacía!');
+  }
 
   // Inicializa los formatos de fecha para español
   await initializeDateFormatting('es_ES', null);
