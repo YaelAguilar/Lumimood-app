@@ -28,7 +28,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     try {
       // Paso 1: Autenticar siempre contra el servicio de identidad.
       final response = await apiClient.post(
-        '${ApiConfig.identityBaseUrl}/identity/login',
+        '${ApiConfig.identityBaseUrl}/login',
         {'email': email, 'password': password, 'typeAccount': typeAccount},
       );
 
@@ -94,7 +94,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<void> register(RegisterParams params) async {
     log('📝 REGISTER PATIENT: Starting patient registration process...');
-    final url = '${ApiConfig.patientBaseUrl}/patient';
+    final url = ApiConfig.patientBaseUrl;
     
     final formattedBirthDate = DateFormat('dd-MM-yyyy').format(params.birthDate);
     final String genderValue = params.gender;
@@ -146,7 +146,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<void> registerSpecialist(RegisterSpecialistParams params) async {
     log('🩺 REGISTER SPECIALIST: Starting specialist registration process...');
-    final url = '${ApiConfig.professionalBaseUrl}/professional';
+    final url = ApiConfig.professionalBaseUrl;
     
     final formattedBirthDate = DateFormat('dd-MM-yyyy').format(params.birthDate);
 
@@ -207,7 +207,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<Map<String, dynamic>?> checkProfessionalByCredentialId(String credentialId) async {
     log('🔍 Checking professional service for credentialId: $credentialId');
-    final url = '${ApiConfig.professionalBaseUrl}/professional/credential/$credentialId';
+    final url = '${ApiConfig.professionalBaseUrl}/credential/$credentialId';
     log('🌍 Making HTTP request to: $url');
     
     try {

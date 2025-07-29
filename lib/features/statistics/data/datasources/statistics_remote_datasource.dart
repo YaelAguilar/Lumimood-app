@@ -18,7 +18,7 @@ class StatisticsRemoteDataSourceImpl implements StatisticsRemoteDataSource {
   @override
   Future<StatisticsModel> getStatisticsData(String patientId, DateTime date) async {
     final formattedDate = DateFormat('yyyy-MM-dd').format(date);
-    final url = '${ApiConfig.diaryBaseUrl}/record/emotion/$patientId/$formattedDate';
+    final url = '${ApiConfig.diaryBaseUrl}/emotion/$patientId/$formattedDate';
     log('📊 STATISTICS API: Fetching from: $url');
     
     try {
