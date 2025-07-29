@@ -28,7 +28,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     try {
       // Paso 1: Autenticar siempre contra el servicio de identidad.
       final response = await apiClient.post(
-        '${ApiConfig.identityBaseUrl}/login',
+        '${ApiConfig.identityBaseUrl}/identity/login',
         {'email': email, 'password': password, 'typeAccount': typeAccount},
       );
 
@@ -94,7 +94,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<void> register(RegisterParams params) async {
     log('📝 REGISTER PATIENT: Starting patient registration process...');
-    final url = ApiConfig.patientBaseUrl;
+    final url = '${ApiConfig.patientBaseUrl}/patient';
     
     final formattedBirthDate = DateFormat('dd-MM-yyyy').format(params.birthDate);
     final String genderValue = params.gender;
@@ -115,9 +115,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     log('📝 REGISTER PATIENT: Request body: $body');
     
     try {
-      final response = await apiClient.post(url, body, {
-        'X-Registration-Type': 'patient'
-      });
+      final response = await apiClient.post(url, body);
       log('📝 REGISTER PATIENT: Response status: ${response.statusCode}');
       log('📝 REGISTER PATIENT: Response body: ${response.body}');
 
@@ -148,7 +146,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<void> registerSpecialist(RegisterSpecialistParams params) async {
     log('🩺 REGISTER SPECIALIST: Starting specialist registration process...');
-    final url = ApiConfig.professionalBaseUrl;
+    final url = '${ApiConfig.professionalBaseUrl}/professional';
     
     final formattedBirthDate = DateFormat('dd-MM-yyyy').format(params.birthDate);
 
@@ -163,17 +161,13 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       "password": params.password,
       "professionName": params.professionName,
       "professionalLicense": params.professionalLicense,
-      // Agregar un campo que identifique claramente que es un especialista
-      "registrationType": "specialist"
     };
 
     log('🩺 REGISTER SPECIALIST: Making POST request to: $url');
     log('🩺 REGISTER SPECIALIST: Request body: $body');
     
     try {
-      final response = await apiClient.post(url, body, {
-        'X-Registration-Type': 'specialist'
-      });
+      final response = await apiClient.post(url, body);
       log('🩺 REGISTER SPECIALIST: Response status: ${response.statusCode}');
       log('🩺 REGISTER SPECIALIST: Response body: ${response.body}');
 
@@ -186,21 +180,13 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       String errorMessage;
       try {
         final errorBody = json.decode(response.body);
-        
-        // Si el backend sigue devolviendo "error al crear el paciente", 
-        // mostrar un mensaje más claro
-        final originalMessage = errorBody['message']?.toString() ?? '';
-        if (originalMessage.toLowerCase().contains('paciente')) {
-          errorMessage = 'Error en el servidor: El backend está procesando incorrectamente el registro de especialista como paciente. Contacte al administrador.';
-        } else {
-          errorMessage = originalMessage.isEmpty ? 'Error desconocido en el registro del especialista' : originalMessage;
-        }
+        errorMessage = errorBody['message'] ?? 'Error desconocido en el registro del especialista';
       } catch (e) {
         errorMessage = 'Error de formato en la respuesta del servidor (${response.statusCode})';
       }
       
       log('❌ REGISTER SPECIALIST: Registration failed with status ${response.statusCode}: $errorMessage');
-      throw ServerException(errorMessage);
+      throw ServerException('Error al registrar especialista: $errorMessage');
       
     } catch (e) {
       if (e is ServerException) rethrow;
@@ -221,7 +207,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<Map<String, dynamic>?> checkProfessionalByCredentialId(String credentialId) async {
     log('🔍 Checking professional service for credentialId: $credentialId');
-    final url = '${ApiConfig.professionalBaseUrl}/credential/$credentialId';
+    final url = '${ApiConfig.professionalBaseUrl}/professional/credential/$credentialId';
     log('🌍 Making HTTP request to: $url');
     
     try {
