@@ -11,7 +11,7 @@ class AccountTypeSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final isSmallScreen = screenWidth < 350;
+    final isSmallScreen = screenWidth < 380;
     
     return BlocBuilder<AuthBloc, AuthState>(
       buildWhen: (p, c) => p.accountType != c.accountType,
@@ -53,29 +53,27 @@ class AccountTypeSelector extends StatelessWidget {
           groupValue: state.accountType,
           children: {
             AccountType.patient: Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: isSmallScreen ? 12 : 20,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
                 vertical: 10,
               ),
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  isSmallScreen ? 'Paciente' : 'Soy Paciente',
-                  style: const TextStyle(color: Colors.white),
-                ),
+              child: Text(
+                'Soy Paciente',
+                style: const TextStyle(color: Colors.white),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
             AccountType.specialist: Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: isSmallScreen ? 12 : 20,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
                 vertical: 10,
               ),
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  isSmallScreen ? 'Especialista' : 'Soy Especialista',
-                  style: const TextStyle(color: Colors.white),
-                ),
+              child: Text(
+                'Soy Especialista',
+                style: const TextStyle(color: Colors.white),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           },
@@ -106,7 +104,7 @@ class _AccountTypeButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         decoration: BoxDecoration(
           color: isSelected ? AppTheme.primaryColor : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
@@ -117,7 +115,11 @@ class _AccountTypeButton extends StatelessWidget {
             style: TextStyle(
               color: Colors.white,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              fontSize: 14,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
           ),
         ),
       ),

@@ -46,6 +46,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthAccountTypeChanged>((event, emit) => emit(state.copyWith(accountType: event.accountType)));
     on<AuthProfessionNameChanged>((event, emit) => emit(state.copyWith(professionName: event.professionName)));
     on<AuthProfessionalLicenseChanged>((event, emit) => emit(state.copyWith(professionalLicense: event.license)));
+    on<AuthProfessionalIdChanged>((event, emit) => emit(state.copyWith(professionalId: event.professionalId))); // Nuevo evento
     
     on<AuthLoginWithEmailAndPasswordPressed>(_onLoginWithEmail);
     on<AuthRegisterWithEmailAndPasswordPressed>(_onRegisterWithEmail);
@@ -95,6 +96,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
 
     if (state.accountType == AccountType.patient) {
+      // Validar que se haya ingresado el ID del profesional
+      if (state.professionalId.trim().isEmpty) {
+        emit(state.copyWith(status: FormStatus.error, errorMessage: 'Por favor, ingresa el ID del especialista.'));
+        return;
+      }
+
       final result = await registerUser(RegisterParams(
         name: state.name,
         lastName: state.lastName,
@@ -104,6 +111,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         gender: state.gender,
         phoneNumber: state.phoneNumber,
         birthDate: state.birthDate!,
+        professionalId: state.professionalId, // Nuevo campo
       ));
       result.fold(
         (failure) => emit(state.copyWith(status: FormStatus.error, errorMessage: failure.message)),

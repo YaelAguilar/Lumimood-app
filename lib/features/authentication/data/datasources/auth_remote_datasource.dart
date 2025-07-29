@@ -105,6 +105,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       "birthDate": formattedBirthDate,
       "gender": genderValue,
       "phone": params.phoneNumber,
+      "professionalId": params.professionalId, // Nuevo campo
       "email": params.email,
       "password": params.password,
     };

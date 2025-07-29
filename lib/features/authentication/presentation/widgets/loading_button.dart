@@ -37,6 +37,7 @@ class LoadingButton extends StatelessWidget {
         child: isLoading
             ? Row(
                 mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   const SizedBox(
                     width: 20,
@@ -47,21 +48,30 @@ class LoadingButton extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Text(
-                    'Cargando...',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
+                  Flexible(
+                    child: Text(
+                      'Cargando...',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ],
               )
-            : Text(
-                text,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: textColor ?? Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
+            : Flexible(
+                child: Text(
+                  text,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: textColor ?? Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                ),
               ),
       ),
     );

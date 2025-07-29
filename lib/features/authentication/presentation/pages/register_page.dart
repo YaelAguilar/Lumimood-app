@@ -154,6 +154,53 @@ class _RegisterFormState extends State<_RegisterForm> {
         key: _formKey,
         child: Column(
           children: [
+            // Mostrar campo Professional ID solo para pacientes
+            BlocBuilder<AuthBloc, AuthState>(
+              buildWhen: (p, c) => p.accountType != c.accountType,
+              builder: (context, state) {
+                if (state.accountType == AccountType.patient) {
+                  return Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.blue.shade200),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.info_outline, color: Colors.blue.shade600, size: 20),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'Necesitas el ID de tu especialista para registrarte. Solicítaselo directamente.',
+                                style: TextStyle(
+                                  color: Colors.blue.shade700,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      AuthFormField(
+                        onChanged: (value) => context.read<AuthBloc>().add(AuthProfessionalIdChanged(value)),
+                        prefixIcon: Icons.medical_services_outlined,
+                        hintText: 'ID del Especialista',
+                        keyboardType: TextInputType.text,
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                  ).animate().fadeIn(duration: 400.ms);
+                }
+                return const SizedBox.shrink();
+              },
+            ),
             AuthFormField(
               onChanged: (value) => context.read<AuthBloc>().add(AuthNameChanged(value)),
               prefixIcon: Icons.person_outline,
@@ -308,25 +355,31 @@ class _RegisterFormState extends State<_RegisterForm> {
               },
             ),
             const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  '¿Ya tienes una cuenta? ',
-                  style: Theme.of(context).textTheme.bodyMedium,
+          Column(
+            children: [
+              Text(
+                '¿Ya tienes una cuenta?',
+                style: Theme.of(context).textTheme.bodyMedium,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => context.goNamed('login'),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
-                TextButton(
-                  onPressed: () => context.goNamed('login'),
-                  child: const Text(
-                    'Inicia sesión',
-                    style: TextStyle(
-                      color: AppTheme.primaryColor,
-                      fontWeight: FontWeight.bold,
-                    ),
+                child: const Text(
+                  'Inicia sesión',
+                  style: TextStyle(
+                    color: AppTheme.primaryColor,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
+          ),
           ],
         ),
       ),

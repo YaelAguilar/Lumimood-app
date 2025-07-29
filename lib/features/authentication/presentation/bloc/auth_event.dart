@@ -71,3 +71,8 @@ final class AuthProfessionalLicenseChanged extends AuthEvent {
   final String license;
   AuthProfessionalLicenseChanged(this.license);
 }
+
+final class AuthProfessionalIdChanged extends AuthEvent {
+  final String professionalId;
+  AuthProfessionalIdChanged(this.professionalId);
+}

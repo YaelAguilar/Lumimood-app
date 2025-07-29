@@ -24,6 +24,7 @@ class RegisterParams extends Equatable {
   final String password;
   final String gender;
   final String phoneNumber;
+  final String professionalId; // Nuevo campo requerido
 
   const RegisterParams({
     required this.name,
@@ -34,6 +35,7 @@ class RegisterParams extends Equatable {
     required this.password,
     required this.gender,
     required this.phoneNumber,
+    required this.professionalId, // Nuevo campo requerido
   });
 
   @override
@@ -46,5 +48,6 @@ class RegisterParams extends Equatable {
         password,
         gender,
         phoneNumber,
+        professionalId, // Incluir en props
       ];
 }

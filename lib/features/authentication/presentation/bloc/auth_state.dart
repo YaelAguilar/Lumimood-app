@@ -20,6 +20,7 @@ class AuthState extends Equatable {
   final AccountType accountType;
   final String professionName;
   final String professionalLicense;
+  final String professionalId; // Nuevo campo
 
   const AuthState({
     this.viewMode = AuthViewMode.login,
@@ -38,6 +39,7 @@ class AuthState extends Equatable {
     this.accountType = AccountType.patient,
     this.professionName = 'psicologo',
     this.professionalLicense = '',
+    this.professionalId = '', // Nuevo campo
   });
 
   AuthState copyWith({
@@ -57,6 +59,7 @@ class AuthState extends Equatable {
     AccountType? accountType,
     String? professionName,
     String? professionalLicense,
+    String? professionalId, // Nuevo campo
   }) {
     return AuthState(
       viewMode: viewMode ?? this.viewMode,
@@ -75,6 +78,7 @@ class AuthState extends Equatable {
       accountType: accountType ?? this.accountType,
       professionName: professionName ?? this.professionName,
       professionalLicense: professionalLicense ?? this.professionalLicense,
+      professionalId: professionalId ?? this.professionalId, // Nuevo campo
     );
   }
 
@@ -82,6 +86,6 @@ class AuthState extends Equatable {
   List<Object?> get props => [
         viewMode, email, password, isPasswordVisible, status, errorMessage,
         successMessage, name, lastName, secondLastName, gender, birthDate,
-        phoneNumber, accountType, professionName, professionalLicense,
+        phoneNumber, accountType, professionName, professionalLicense, professionalId, // Incluir en props
       ];
 }

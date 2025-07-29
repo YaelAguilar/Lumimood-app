@@ -9,6 +9,8 @@ sealed class SpecialistDashboardEvent extends Equatable {
 
 class LoadDashboardData extends SpecialistDashboardEvent {}
 
+class LoadPatients extends SpecialistDashboardEvent {}
+
 class ChangeSelectedDate extends SpecialistDashboardEvent {
   final DateTime date;
   

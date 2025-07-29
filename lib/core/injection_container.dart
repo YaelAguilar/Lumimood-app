@@ -55,6 +55,12 @@ import '../features/specialistdashboard/data/repositories/appointment_repository
 import '../features/specialistdashboard/domain/repositories/appointment_repository.dart';
 import '../features/specialistdashboard/domain/usecases/get_appointments_by_professional.dart';
 
+// Patients Imports
+import '../features/patients/data/datasources/patient_remote_datasource.dart';
+import '../features/patients/data/repositories/patient_repository_impl.dart';
+import '../features/patients/domain/repositories/patient_repository.dart';
+import '../features/patients/domain/usecases/get_patients_by_professional.dart';
+
 
 final getIt = GetIt.instance;
 
@@ -74,6 +80,7 @@ Future<void> init() async {
   _initTasks();
   _initStatistics();
   _initSpecialist();
+  _initPatients();
 }
 
 void _initAuth() {
@@ -161,7 +168,11 @@ void _initStatistics() {
 
 void _initSpecialist() {
   // Blocs
-  getIt.registerFactory(() => SpecialistDashboardBloc(getAppointments: getIt(), sessionCubit: getIt()));
+  getIt.registerFactory(() => SpecialistDashboardBloc(
+    getAppointments: getIt(), 
+    getPatients: getIt(), // Nueva dependencia
+    sessionCubit: getIt()
+  ));
   
   // Use cases
   getIt.registerLazySingleton(() => GetAppointmentsByProfessional(getIt()));
@@ -169,4 +180,13 @@ void _initSpecialist() {
   // Repositories and DataSources
   getIt.registerLazySingleton<AppointmentRepository>(() => AppointmentRepositoryImpl(remoteDataSource: getIt()));
   getIt.registerLazySingleton<AppointmentRemoteDataSource>(() => AppointmentRemoteDataSourceImpl(apiClient: getIt()));
+}
+
+void _initPatients() {
+  // Use cases
+  getIt.registerLazySingleton(() => GetPatientsByProfessional(getIt()));
+  
+  // Repositories and DataSources
+  getIt.registerLazySingleton<PatientRepository>(() => PatientRepositoryImpl(remoteDataSource: getIt()));
+  getIt.registerLazySingleton<PatientRemoteDataSource>(() => PatientRemoteDataSourceImpl(apiClient: getIt()));
 }

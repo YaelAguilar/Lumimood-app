@@ -45,7 +45,7 @@ class LoginPage extends StatelessWidget {
           listener: (context, state) {
             if (state is AuthenticatedSessionState) {
               if (state.user.typeAccount == AccountType.specialist) {
-                context.goNamed('specialist_dashboard'); // CORREGIDO: era 'specialist_dashsboard'
+                context.goNamed('specialist_dashboard');
               } else {
                 context.goNamed('diary');
               }
@@ -214,21 +214,22 @@ class _LoginFormState extends State<_LoginForm> {
                         }
                       },
                 isLoading: state.status == FormStatus.loading,
-                text: 'Iniciar sesión como ${state.accountType == AccountType.specialist ? "Especialista" : "Paciente"}',
+                text: state.accountType == AccountType.specialist ? "Iniciar como Especialista" : "Iniciar como Paciente",
               ),
               const SizedBox(height: 24),
-              Wrap(
-                alignment: WrapAlignment.center,
-                spacing: 4,
+              // Sección corregida para evitar overflow
+              Column(
                 children: [
                   Text(
                     '¿Aún no tienes una cuenta?',
                     style: Theme.of(context).textTheme.bodyMedium,
+                    textAlign: TextAlign.center,
                   ),
+                  const SizedBox(height: 8),
                   TextButton(
                     style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      minimumSize: const Size(0, 0),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      minimumSize: Size.zero,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
                     onPressed: () => context.goNamed('register'),
