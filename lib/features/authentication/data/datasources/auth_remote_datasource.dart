@@ -25,12 +25,13 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     log('🚀 AuthRemoteDataSource.login() CALLED - Email: $email, User selected type: $typeAccount');
     
     try {
-      // Paso 1: Autenticar contra el servicio de identidad
+      // Paso 1: Autenticar contra el servicio de identidad (enviando también el rol esperado)
       final response = await apiClient.post(
-        '${ApiConfig.identityBaseUrl}/login/',
+        '${ApiConfig.identityBaseUrl}/login',
         {
           'email': email, 
-          'password': password
+          'password': password,
+          'rol': _convertTypeAccountToBackendRole(typeAccount), // Enviar el rol esperado
         },
       );
 
@@ -50,63 +51,46 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         throw ServerException('Respuesta de autenticación inválida del servidor.');
       }
 
+      // Paso 2: Extraer el rol real del usuario desde el backend
+      final backendRole = loginResult['rol']?.toString();
+      final userId = loginResult['id']?.toString();
       final userEmail = loginResult['email']?.toString() ?? email;
       
-      log('🔍 User Email: $userEmail');
+      if (backendRole == null) {
+        throw ServerException('Rol de usuario no encontrado en la respuesta del servidor.');
+      }
+      
+      if (userId == null) {
+        throw ServerException('ID de usuario no encontrado en la respuesta.');
+      }
 
-      // Paso 2: Validar el tipo de cuenta real vs el seleccionado usando EMAIL
-      if (typeAccount == 'patient') {
-        log('🔍 User wants to log in as Patient. Validating...');
+      log('🔍 User ID: $userId');
+      log('🔍 User Email: $userEmail');
+      log('🔍 Backend Role: $backendRole');
+      log('🔍 Selected Type: $typeAccount');
+
+      // Paso 3: Validar que el rol del backend coincida con el tipo seleccionado
+      final isValidSelection = _validateUserTypeSelection(typeAccount, backendRole);
+      
+      if (!isValidSelection) {
+        log('❌ Login failed: Role mismatch. Backend says "$backendRole", user selected "$typeAccount"');
         
-        // Verificar si existe como paciente
-        final patientData = await _checkIfPatientExists(userEmail);
-        
-        if (patientData != null) {
-          // Es realmente un paciente
-          log('✅ Validation successful: User is a legitimate patient.');
-          return UserModel.fromLoginWithPatient(
-            loginJson: responseBody,
-            patientJson: patientData,
-          );
+        if (backendRole == 'patient') {
+          throw ServerException('Esta cuenta pertenece a un paciente. Por favor, selecciona "Paciente" para iniciar sesión.');
+        } else if (backendRole == 'professional') {
+          throw ServerException('Esta cuenta pertenece a un especialista. Por favor, selecciona "Especialista" para iniciar sesión.');
         } else {
-          // No es paciente, verificar si es especialista para dar mensaje específico
-          final professionalData = await _checkIfProfessionalExists(userEmail);
-          
-          if (professionalData != null) {
-            log('❌ Login failed: User is a specialist trying to log in as patient.');
-            throw ServerException('Esta cuenta pertenece a un especialista. Por favor, selecciona "Especialista" para iniciar sesión.');
-          } else {
-            log('❌ Login failed: User credentials are valid but not registered as patient.');
-            throw ServerException('Esta cuenta no está registrada como paciente.');
-          }
-        }
-        
-      } else { // typeAccount == 'specialist'
-        log('🔍 User wants to log in as Specialist. Validating...');
-        
-        // Verificar si existe como especialista
-        final professionalData = await _checkIfProfessionalExists(userEmail);
-        
-        if (professionalData != null) {
-          // Es realmente un especialista
-          log('✅ Validation successful: User is a legitimate specialist.');
-          return UserModel.fromLoginWithProfessional(
-            loginJson: responseBody,
-            professionalJson: professionalData,
-          );
-        } else {
-          // No es especialista, verificar si es paciente para dar mensaje específico
-          final patientData = await _checkIfPatientExists(userEmail);
-          
-          if (patientData != null) {
-            log('❌ Login failed: User is a patient trying to log in as specialist.');
-            throw ServerException('Esta cuenta pertenece a un paciente. Por favor, selecciona "Paciente" para iniciar sesión.');
-          } else {
-            log('❌ Login failed: User credentials are valid but not registered as specialist.');
-            throw ServerException('Esta cuenta no está registrada como especialista.');
-          }
+          throw ServerException('Tipo de cuenta no reconocido. Contacta al administrador.');
         }
       }
+
+      // Paso 4: Crear el modelo de usuario con el tipo correcto
+      log('✅ Validation successful: User role matches selected type');
+      
+      return UserModel.fromLoginResponseWithRole(
+        loginJson: responseBody,
+        backendRole: backendRole,
+      );
 
     } on ServerException {
       rethrow;
@@ -116,108 +100,27 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     }
   }
 
-  // Método para verificar si un usuario existe como paciente (por email)
-  Future<Map<String, dynamic>?> _checkIfPatientExists(String email) async {
-    log('🔍 Checking if user exists as patient by email: $email');
-    
-    try {
-      // Intentamos obtener todos los pacientes y buscar por email
-      // Según Postman: GET /patient/ (GetAllIdPatient)
-      final url = '${ApiConfig.patientBaseUrl}/';
-      log('🌍 Making HTTP request to: $url');
-      
-      final response = await apiClient.get(url);
-      log('📊 Patient service response status: ${response.statusCode}');
-      
-      if (response.statusCode == 200) {
-        final responseBody = json.decode(response.body);
-        log('✅ Patients list retrieved: $responseBody');
-        
-        // Si la respuesta es una lista, buscar por email
-        if (responseBody is List) {
-          for (var patient in responseBody) {
-            if (patient is Map<String, dynamic> && patient['email'] == email) {
-              log('✅ Patient found by email: $patient');
-              return patient;
-            }
-          }
-        } else if (responseBody is Map<String, dynamic>) {
-          // Si la respuesta es un objeto con una lista dentro
-          if (responseBody.containsKey('patients')) {
-            final patientsList = responseBody['patients'] as List?;
-            if (patientsList != null) {
-              for (var patient in patientsList) {
-                if (patient is Map<String, dynamic> && patient['email'] == email) {
-                  log('✅ Patient found by email: $patient');
-                  return patient;
-                }
-              }
-            }
-          }
-        }
-        
-        log('⚠️ Patient not found for email: $email');
-        return null;
-      } else {
-        log('❌ Unexpected response from patient service: ${response.statusCode}');
-        return null;
-      }
-    } catch (e) {
-      log('❌ Error checking patient service: $e');
-      return null;
+  /// Convierte el tipo seleccionado en la UI al rol del backend
+  String _convertTypeAccountToBackendRole(String typeAccount) {
+    switch (typeAccount) {
+      case 'patient':
+        return 'patient';
+      case 'specialist':
+        return 'professional';
+      default:
+        return 'patient'; // valor por defecto
     }
   }
 
-  // Método para verificar si un usuario existe como profesional (por email)
-  Future<Map<String, dynamic>?> _checkIfProfessionalExists(String email) async {
-    log('🔍 Checking if user exists as professional by email: $email');
-    
-    try {
-      // Según la documentación de Postman, no hay un endpoint para obtener todos los profesionales
-      // Pero podemos intentar hacer una búsqueda inteligente
-      // Intentamos usar el endpoint que más se parecería
-      final url = '${ApiConfig.professionalBaseUrl}/';
-      log('🌍 Making HTTP request to: $url');
-      
-      final response = await apiClient.get(url);
-      log('📊 Professional service response status: ${response.statusCode}');
-      
-      if (response.statusCode == 200) {
-        final responseBody = json.decode(response.body);
-        log('✅ Professional service responded: $responseBody');
-        
-        // Si la respuesta es una lista, buscar por email
-        if (responseBody is List) {
-          for (var professional in responseBody) {
-            if (professional is Map<String, dynamic> && professional['email'] == email) {
-              log('✅ Professional found by email: $professional');
-              return professional;
-            }
-          }
-        } else if (responseBody is Map<String, dynamic>) {
-          // Si la respuesta es un objeto con una lista dentro
-          if (responseBody.containsKey('professionals')) {
-            final professionalsList = responseBody['professionals'] as List?;
-            if (professionalsList != null) {
-              for (var professional in professionalsList) {
-                if (professional is Map<String, dynamic> && professional['email'] == email) {
-                  log('✅ Professional found by email: $professional');
-                  return professional;
-                }
-              }
-            }
-          }
-        }
-        
-        log('⚠️ Professional not found for email: $email');
-        return null;
-      } else {
-        log('❌ Unexpected response from professional service: ${response.statusCode}');
-        return null;
-      }
-    } catch (e) {
-      log('❌ Error checking professional service: $e');
-      return null;
+  /// Valida que el tipo seleccionado por el usuario coincida con el rol del backend
+  bool _validateUserTypeSelection(String selectedType, String backendRole) {
+    switch (selectedType) {
+      case 'patient':
+        return backendRole == 'patient';
+      case 'specialist':
+        return backendRole == 'professional';
+      default:
+        return false;
     }
   }
 

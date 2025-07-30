@@ -47,13 +47,13 @@ class UserModel extends UserEntity {
     );
   }
   
-  // Nuevo factory method simplificado para respuesta de login
-  factory UserModel.fromLoginResponse({
+  // Nuevo factory method para la respuesta con rol del backend
+  factory UserModel.fromLoginResponseWithRole({
     required Map<String, dynamic> loginJson,
-    required String userType,
+    required String backendRole,
   }) {
-    log('UserModel.fromLoginResponse - Login JSON: $loginJson');
-    log('UserModel.fromLoginResponse - User Type: $userType');
+    log('UserModel.fromLoginResponseWithRole - Login JSON: $loginJson');
+    log('UserModel.fromLoginResponseWithRole - Backend Role: $backendRole');
     
     final Map<String, dynamic> loginResult = loginJson['loginResult'] ?? loginJson;
     final String? token = loginJson['token']?.toString();
@@ -67,14 +67,14 @@ class UserModel extends UserEntity {
       throw Exception('Critical field "token" is null in login response: $loginJson');
     }
     
-    // Convertir userType string a AccountType enum
-    final AccountType accountType = userType == 'patient' ? AccountType.patient : AccountType.specialist;
+    // Convertir el rol del backend al tipo de cuenta de la app
+    final AccountType accountType = _convertBackendRoleToAccountType(backendRole);
     
     String name = loginResult['name']?.toString() ?? 
                   loginResult['firstName']?.toString() ?? 
-                  (userType == 'patient' ? 'Paciente' : 'Especialista');
+                  (accountType == AccountType.patient ? 'Paciente' : 'Especialista');
 
-    log('✅ User identified as ${accountType.name}: $name');
+    log('✅ User created with role ${accountType.name} from backend role "$backendRole": $name');
     
     return UserModel(
       id: id,
@@ -83,6 +83,19 @@ class UserModel extends UserEntity {
       typeAccount: accountType,
       token: token,
     );
+  }
+
+  /// Convierte el rol del backend al tipo de cuenta de la aplicación
+  static AccountType _convertBackendRoleToAccountType(String backendRole) {
+    switch (backendRole.toLowerCase()) {
+      case 'patient':
+        return AccountType.patient;
+      case 'professional':
+        return AccountType.specialist;
+      default:
+        log('Unknown backend role: $backendRole, defaulting to patient');
+        return AccountType.patient;
+    }
   }
   
   // Factory method para combinar login response con información de profesional (MANTENER por compatibilidad)
