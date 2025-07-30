@@ -35,6 +35,7 @@ class PatientCard extends StatelessWidget {
       },
       borderRadius: BorderRadius.circular(20),
       child: Container(
+        width: double.infinity,
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -60,9 +61,12 @@ class PatientCard extends StatelessWidget {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
+            // HEADER ROW - Información básica
             Row(
               children: [
+                // Avatar
                 Container(
                   width: 50,
                   height: 50,
@@ -84,10 +88,14 @@ class PatientCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 16),
+                
+                // Información principal - CON FLEX PARA EVITAR OVERFLOW
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
+                      // Nombre completo - CONTROLADO PARA NO DESBORDAR
                       Text(
                         patient.fullName,
                         style: GoogleFonts.interTight(
@@ -95,10 +103,12 @@ class PatientCard extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                           color: AppTheme.primaryText,
                         ),
-                        maxLines: 1,
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 4),
+                      
+                      // Edad y género - FLEX PARA MANEJAR OVERFLOW
                       Row(
                         children: [
                           Icon(
@@ -107,11 +117,15 @@ class PatientCard extends StatelessWidget {
                             color: AppTheme.primaryText.withAlpha((0.6 * 255).round()),
                           ),
                           const SizedBox(width: 4),
-                          Text(
-                            '$age años • $cleanGender',
-                            style: GoogleFonts.inter(
-                              textStyle: textTheme.bodySmall,
-                              color: AppTheme.primaryText.withAlpha((0.6 * 255).round()),
+                          Expanded(
+                            child: Text(
+                              '$age años • $cleanGender',
+                              style: GoogleFonts.inter(
+                                textStyle: textTheme.bodySmall,
+                                color: AppTheme.primaryText.withAlpha((0.6 * 255).round()),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
@@ -119,6 +133,8 @@ class PatientCard extends StatelessWidget {
                     ],
                   ),
                 ),
+                
+                // Status badge - SIEMPRE AL FINAL
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
@@ -138,69 +154,25 @@ class PatientCard extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             
-            // EMAIL - SIEMPRE MOSTRAR (incluso si está vacío)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.email_outlined,
-                    size: 18,
-                    color: AppTheme.primaryText.withAlpha((0.7 * 255).round()),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      cleanEmail.isNotEmpty ? cleanEmail : 'Email no disponible',
-                      style: textTheme.bodyMedium?.copyWith(
-                        color: cleanEmail.isNotEmpty 
-                          ? AppTheme.primaryText.withAlpha((0.7 * 255).round())
-                          : Colors.grey.shade500,
-                        fontStyle: cleanEmail.isNotEmpty ? FontStyle.normal : FontStyle.italic,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
+            // EMAIL SECTION - MEJORADA PARA MOSTRAR CORRECTAMENTE
+            _buildInfoRow(
+              icon: Icons.email_outlined,
+              content: cleanEmail.isNotEmpty ? cleanEmail : 'Email no disponible',
+              isPlaceholder: cleanEmail.isEmpty,
+              context: context,
             ),
             const SizedBox(height: 8),
             
-            // TELÉFONO
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.phone_outlined,
-                    size: 18,
-                    color: AppTheme.primaryText.withAlpha((0.7 * 255).round()),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      patient.phone.isNotEmpty ? patient.phone : 'Teléfono no disponible',
-                      style: textTheme.bodyMedium?.copyWith(
-                        color: patient.phone.isNotEmpty 
-                          ? AppTheme.primaryText.withAlpha((0.7 * 255).round())
-                          : Colors.grey.shade500,
-                        fontStyle: patient.phone.isNotEmpty ? FontStyle.normal : FontStyle.italic,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+            // TELÉFONO SECTION
+            _buildInfoRow(
+              icon: Icons.phone_outlined,
+              content: patient.phone.isNotEmpty ? patient.phone : 'Teléfono no disponible',
+              isPlaceholder: patient.phone.isEmpty,
+              context: context,
             ),
             const SizedBox(height: 12),
+            
+            // BOTÓN DE ACCIÓN
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
@@ -213,12 +185,55 @@ class PatientCard extends StatelessWidget {
                   label: const Text('Ver detalles'),
                   style: TextButton.styleFrom(
                     foregroundColor: AppTheme.primaryColor,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   ),
                 ),
               ],
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Widget helper para crear filas de información sin overflow
+  Widget _buildInfoRow({
+    required IconData icon,
+    required String content,
+    required bool isPlaceholder,
+    required BuildContext context,
+  }) {
+    final textTheme = Theme.of(context).textTheme;
+    
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            size: 18,
+            color: AppTheme.primaryText.withAlpha((0.7 * 255).round()),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              content,
+              style: textTheme.bodyMedium?.copyWith(
+                color: isPlaceholder 
+                  ? Colors.grey.shade500
+                  : AppTheme.primaryText.withAlpha((0.7 * 255).round()),
+                fontStyle: isPlaceholder ? FontStyle.italic : FontStyle.normal,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -234,11 +249,13 @@ class PatientCard extends StatelessWidget {
   }
 
   String _cleanGenderText(String gender) {
+    if (gender.isEmpty || gender == 'null') return 'No especificado';
+    
     // Limpiar formato {value: Masculino}
     if (gender.startsWith('{value:') || gender.startsWith('{value :')) {
       final match = RegExp(r'\{value\s*:\s*([^}]+)\}').firstMatch(gender);
       if (match != null) {
-        return match.group(1)?.trim() ?? gender;
+        gender = match.group(1)?.trim() ?? gender;
       }
     }
     // Limpiar comillas
@@ -248,20 +265,33 @@ class PatientCard extends StatelessWidget {
   String _cleanEmailText(String email) {
     if (email.isEmpty || email == 'null') return '';
     
+    log('📧 CLEANING EMAIL: Input: "$email"');
+    
     // Limpiar formato {value: email@domain.com}
     if (email.startsWith('{value:') || email.startsWith('{value :')) {
       final match = RegExp(r'\{value\s*:\s*([^}]+)\}').firstMatch(email);
       if (match != null) {
         email = match.group(1)?.trim() ?? email;
+        log('📧 CLEANING EMAIL: After removing {value:}: "$email"');
       }
     }
     
-    // Limpiar comillas
+    // Limpiar comillas y espacios
     email = email.replaceAll('"', '').replaceAll("'", '').trim();
+    log('📧 CLEANING EMAIL: After removing quotes: "$email"');
     
-    // Validar que sea un email válido
-    if (email.contains('@') && email.contains('.')) {
-      return email;
+    // Validar que sea un email válido básico
+    if (email.contains('@') && email.contains('.') && email.length > 5) {
+      // Validación más estricta con regex
+      final emailRegex = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+      if (emailRegex.hasMatch(email)) {
+        log('📧 CLEANING EMAIL: Valid email found: "$email"');
+        return email;
+      } else {
+        log('📧 CLEANING EMAIL: Invalid email format: "$email"');
+      }
+    } else {
+      log('📧 CLEANING EMAIL: Basic validation failed for: "$email"');
     }
     
     return '';
@@ -286,6 +316,7 @@ class PatientCard extends StatelessWidget {
         ),
         child: Column(
           children: [
+            // Handle para cerrar
             Container(
               width: 40,
               height: 4,
@@ -295,12 +326,15 @@ class PatientCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
+            
+            // Contenido scrolleable
             Expanded(
-              child: Padding(
+              child: SingleChildScrollView(
                 padding: const EdgeInsets.all(24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Header del modal
                     Row(
                       children: [
                         Container(
@@ -334,6 +368,8 @@ class PatientCard extends StatelessWidget {
                                   textStyle: Theme.of(context).textTheme.headlineSmall,
                                   fontWeight: FontWeight.bold,
                                 ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
                               Text(
                                 'Paciente',
@@ -347,6 +383,8 @@ class PatientCard extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 32),
+                    
+                    // Título de información
                     const Text(
                       'Información del Paciente',
                       style: TextStyle(
@@ -356,7 +394,7 @@ class PatientCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
                     
-                    // EMAIL - siempre mostrar
+                    // Lista de detalles
                     _DetailRow(
                       icon: Icons.email_outlined,
                       label: 'Email',
@@ -449,6 +487,8 @@ class _DetailRow extends StatelessWidget {
                     color: isPlaceholder ? Colors.grey.shade500 : Colors.black,
                     fontStyle: isPlaceholder ? FontStyle.italic : FontStyle.normal,
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),

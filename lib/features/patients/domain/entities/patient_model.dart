@@ -65,85 +65,14 @@ class PatientModel extends PatientEntity {
       }
 
       // Extraer género - limpiar formato {value: Masculino}
-      String gender = json['gender']?.toString() ?? 'No especificado';
-      if (gender.startsWith('{value:') || gender.startsWith('{value :')) {
-        // Extraer el valor entre {value: y }
-        final match = RegExp(r'\{value\s*:\s*([^}]+)\}').firstMatch(gender);
-        if (match != null) {
-          gender = match.group(1)?.trim() ?? gender;
-        }
-      }
+      String gender = _cleanTextValue(json['gender']?.toString() ?? 'No especificado');
       log('📋 PATIENT MODEL: Cleaned gender: $gender');
       
       // Extraer teléfono
       String phone = json['phone']?.toString() ?? '';
       
-      // EXTRACCIÓN MEJORADA DEL EMAIL - más exhaustiva
-      String email = '';
-      
-      // Lista de posibles campos donde puede estar el email
-      List<String> emailFields = [
-        'email', 'userEmail', 'emailAddress', 'mail', 'correo',
-        'Email', 'UserEmail', 'EmailAddress', 'Mail', 'Correo'
-      ];
-      
-      for (String field in emailFields) {
-        if (json.containsKey(field) && json[field] != null) {
-          email = json[field].toString();
-          if (email.isNotEmpty && email != 'null') {
-            log('📋 PATIENT MODEL: Found email in field "$field": $email');
-            break;
-          }
-        }
-      }
-      
-      // Si no encontramos email en los campos obvios, buscar en objetos anidados
-      if (email.isEmpty) {
-        // Buscar en posibles objetos anidados como 'user', 'credentials', etc.
-        if (json.containsKey('user') && json['user'] is Map<String, dynamic>) {
-          final userObj = json['user'] as Map<String, dynamic>;
-          for (String field in emailFields) {
-            if (userObj.containsKey(field) && userObj[field] != null) {
-              email = userObj[field].toString();
-              if (email.isNotEmpty && email != 'null') {
-                log('📋 PATIENT MODEL: Found email in user.$field: $email');
-                break;
-              }
-            }
-          }
-        }
-        
-        if (email.isEmpty && json.containsKey('credentials') && json['credentials'] is Map<String, dynamic>) {
-          final credentialsObj = json['credentials'] as Map<String, dynamic>;
-          for (String field in emailFields) {
-            if (credentialsObj.containsKey(field) && credentialsObj[field] != null) {
-              email = credentialsObj[field].toString();
-              if (email.isNotEmpty && email != 'null') {
-                log('📋 PATIENT MODEL: Found email in credentials.$field: $email');
-                break;
-              }
-            }
-          }
-        }
-      }
-      
-      // Limpiar formato {value: email} si existe
-      if (email.startsWith('{value:') || email.startsWith('{value :')) {
-        final match = RegExp(r'\{value\s*:\s*([^}]+)\}').firstMatch(email);
-        if (match != null) {
-          email = match.group(1)?.trim() ?? email;
-        }
-      }
-      
-      // Limpiar comillas si existen
-      email = email.replaceAll('"', '').replaceAll("'", '').trim();
-      
-      // Si aún no tenemos email, intentar construir uno basado en el nombre
-      if (email.isEmpty || email == 'null') {
-        log('⚠️ PATIENT MODEL: No email found, will show placeholder');
-        // No construir un email falso, mejor dejarlo vacío para manejar en la UI
-      }
-      
+      // EXTRACCIÓN MEJORADA DEL EMAIL - MÁS ROBUSTA
+      String email = _extractEmail(json);
       log('📋 PATIENT MODEL: Final email: "$email"');
       
       // Extraer professionalId
@@ -188,6 +117,91 @@ class PatientModel extends PatientEntity {
       log('❌ PATIENT MODEL: JSON was: $json');
       rethrow;
     }
+  }
+
+  /// Función mejorada para extraer el email de diferentes estructuras JSON
+  static String _extractEmail(Map<String, dynamic> json) {
+    // Primera pasada: buscar en el nivel principal
+    String email = _searchEmailInLevel(json);
+    if (email.isNotEmpty) {
+      log('📧 EMAIL: Found in main level: "$email"');
+      return email;
+    }
+
+    // Segunda pasada: buscar en objetos anidados comunes
+    final nestedObjects = ['user', 'credentials', 'account', 'profile', 'personal'];
+    for (String objectKey in nestedObjects) {
+      if (json.containsKey(objectKey) && json[objectKey] is Map<String, dynamic>) {
+        final nestedEmail = _searchEmailInLevel(json[objectKey] as Map<String, dynamic>);
+        if (nestedEmail.isNotEmpty) {
+          log('📧 EMAIL: Found in nested object "$objectKey": "$nestedEmail"');
+          return nestedEmail;
+        }
+      }
+    }
+
+    // Tercera pasada: búsqueda recursiva en todos los objetos anidados
+    for (var entry in json.entries) {
+      if (entry.value is Map<String, dynamic>) {
+        final recursiveEmail = _extractEmail(entry.value as Map<String, dynamic>);
+        if (recursiveEmail.isNotEmpty) {
+          log('📧 EMAIL: Found recursively in "${entry.key}": "$recursiveEmail"');
+          return recursiveEmail;
+        }
+      }
+    }
+
+    log('📧 EMAIL: No email found in any structure');
+    return '';
+  }
+
+  /// Busca email en un nivel específico del JSON
+  static String _searchEmailInLevel(Map<String, dynamic> data) {
+    // Lista de posibles campos donde puede estar el email
+    final emailFields = [
+      'email', 'userEmail', 'emailAddress', 'mail', 'correo', 'e_mail',
+      'Email', 'UserEmail', 'EmailAddress', 'Mail', 'Correo', 'E_mail',
+      'EMAIL', 'USER_EMAIL', 'EMAIL_ADDRESS', 'MAIL', 'CORREO'
+    ];
+
+    for (String field in emailFields) {
+      if (data.containsKey(field) && data[field] != null) {
+        String rawEmail = data[field].toString();
+        if (rawEmail.isNotEmpty && rawEmail != 'null') {
+          String cleanEmail = _cleanTextValue(rawEmail);
+          if (_isValidEmail(cleanEmail)) {
+            return cleanEmail;
+          }
+        }
+      }
+    }
+
+    return '';
+  }
+
+  /// Limpia valores de texto que pueden venir en formato {value: contenido}
+  static String _cleanTextValue(String input) {
+    if (input.isEmpty || input == 'null') return '';
+    
+    // Limpiar formato {value: contenido} o {value : contenido}
+    if (input.startsWith('{value:') || input.startsWith('{value :')) {
+      final match = RegExp(r'\{value\s*:\s*([^}]+)\}').firstMatch(input);
+      if (match != null) {
+        input = match.group(1)?.trim() ?? input;
+      }
+    }
+    
+    // Limpiar comillas y espacios
+    return input.replaceAll('"', '').replaceAll("'", '').trim();
+  }
+
+  /// Valida si una cadena es un email válido
+  static bool _isValidEmail(String email) {
+    if (email.isEmpty) return false;
+    
+    // Regex básico para validar email
+    final emailRegex = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+    return emailRegex.hasMatch(email);
   }
 
   Map<String, dynamic> toJson() {
