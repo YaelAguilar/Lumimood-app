@@ -47,7 +47,45 @@ class UserModel extends UserEntity {
     );
   }
   
-  // Factory method para combinar login response con información de profesional
+  // Nuevo factory method simplificado para respuesta de login
+  factory UserModel.fromLoginResponse({
+    required Map<String, dynamic> loginJson,
+    required String userType,
+  }) {
+    log('UserModel.fromLoginResponse - Login JSON: $loginJson');
+    log('UserModel.fromLoginResponse - User Type: $userType');
+    
+    final Map<String, dynamic> loginResult = loginJson['loginResult'] ?? loginJson;
+    final String? token = loginJson['token']?.toString();
+    
+    // Fail-Fast para campos críticos
+    final id = loginResult['id']?.toString();
+    if (id == null) {
+      throw Exception('Critical field "id" is null in login result: $loginResult');
+    }
+    if (token == null) {
+      throw Exception('Critical field "token" is null in login response: $loginJson');
+    }
+    
+    // Convertir userType string a AccountType enum
+    final AccountType accountType = userType == 'patient' ? AccountType.patient : AccountType.specialist;
+    
+    String name = loginResult['name']?.toString() ?? 
+                  loginResult['firstName']?.toString() ?? 
+                  (userType == 'patient' ? 'Paciente' : 'Especialista');
+
+    log('✅ User identified as ${accountType.name}: $name');
+    
+    return UserModel(
+      id: id,
+      email: loginResult['email']?.toString() ?? '',
+      name: name,
+      typeAccount: accountType,
+      token: token,
+    );
+  }
+  
+  // Factory method para combinar login response con información de profesional (MANTENER por compatibilidad)
   factory UserModel.fromLoginWithProfessional({
     required Map<String, dynamic> loginJson,
     Map<String, dynamic>? professionalJson,
@@ -87,7 +125,7 @@ class UserModel extends UserEntity {
     );
   }
   
-  // Nuevo factory method para pacientes
+  // Factory method para pacientes (MANTENER por compatibilidad)
   factory UserModel.fromLoginWithPatient({
     required Map<String, dynamic> loginJson,
     Map<String, dynamic>? patientJson,

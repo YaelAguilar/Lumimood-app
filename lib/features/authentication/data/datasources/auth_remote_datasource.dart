@@ -13,8 +13,6 @@ abstract class AuthRemoteDataSource {
   Future<void> register(RegisterParams params);
   Future<void> registerSpecialist(RegisterSpecialistParams params);
   Future<void> forgotPassword({required String email});
-  Future<Map<String, dynamic>?> checkProfessionalByCredentialId(String credentialId);
-  Future<Map<String, dynamic>?> checkPatientByCredentialId(String credentialId);
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -27,10 +25,14 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     log('🚀 AuthRemoteDataSource.login() CALLED - Email: $email, User selected type: $typeAccount');
     
     try {
-      // Paso 1: Autenticar siempre contra el servicio de identidad.
+      // Paso 1: Autenticar contra el servicio de identidad (SIN typeAccount según Postman)
       final response = await apiClient.post(
         '${ApiConfig.identityBaseUrl}/login',
-        {'email': email, 'password': password, 'typeAccount': typeAccount},
+        {
+          'email': email, 
+          'password': password
+          // NO enviamos typeAccount - según Postman no es necesario
+        },
       );
 
       log('Identity service response status: ${response.statusCode}');
@@ -43,68 +45,48 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       final responseBody = json.decode(response.body);
       final loginResult = responseBody['loginResult'];
-      final credentialId = loginResult?['id']?.toString();
-
-      if (credentialId == null) {
+      
+      if (loginResult == null) {
         throw ServerException('Respuesta de autenticación inválida del servidor.');
       }
 
-      // Paso 2: Verificar el tipo de cuenta real del usuario
-      if (typeAccount == 'patient') {
-        log('🔍 User wants to log in as Patient. Verifying user type...');
-        
-        // Primero verificamos si es un especialista
-        final professionalData = await checkProfessionalByCredentialId(credentialId);
-        
-        if (professionalData != null) {
-          // Es un especialista intentando entrar como paciente
-          log('❌ Login failed: A registered specialist attempted to log in as a patient.');
-          throw ServerException('Esta cuenta pertenece a un especialista. Por favor, selecciona "Especialista" para iniciar sesión.');
-        }
-        
-        // Ahora verificamos si es un paciente
-        final patientData = await checkPatientByCredentialId(credentialId);
-        
-        if (patientData == null) {
-          // Las credenciales son válidas pero no está registrado ni como paciente ni como especialista
-          log('❌ Login failed: User is not registered as patient.');
-          throw ServerException('Esta cuenta no está registrada como paciente.');
-        }
-        
-        // Es un paciente válido
-        log('✅ Verification successful: User is a valid patient.');
-        return UserModel.fromLoginWithPatient(
-          loginJson: responseBody,
-          patientJson: patientData,
-        );
+      // Extraer información del usuario del loginResult
+      final userEmail = loginResult['email']?.toString() ?? email;
+      final userName = loginResult['name']?.toString() ?? 'Usuario';
+      final userId = loginResult['id']?.toString();
+      
+      if (userId == null) {
+        throw ServerException('ID de usuario no encontrado en la respuesta.');
+      }
 
-      } else { // typeAccount == 'specialist'
-        log('🔍 User wants to log in as Specialist. Verifying user type...');
-        
-        // Verificamos si es un especialista
-        final professionalData = await checkProfessionalByCredentialId(credentialId);
-        
-        if (professionalData == null) {
-          // Ahora verificamos si es un paciente intentando entrar como especialista
-          final patientData = await checkPatientByCredentialId(credentialId);
-          
-          if (patientData != null) {
-            log('❌ Login failed: A registered patient attempted to log in as a specialist.');
-            throw ServerException('Esta cuenta pertenece a un paciente. Por favor, selecciona "Paciente" para iniciar sesión.');
-          }
-          
-          // No está registrado en ninguno de los dos
-          log('❌ Login failed: User is not a registered specialist.');
-          throw ServerException('Esta cuenta no está registrada como especialista.');
-        }
-        
-        // Es un especialista válido
-        log('✅ Verification successful: User is a registered specialist.');
-        return UserModel.fromLoginWithProfessional(
+      log('🔍 User ID obtenido: $userId');
+      log('🔍 User Email: $userEmail');
+      log('🔍 User Name: $userName');
+
+      // Paso 2: Según la documentación de Postman, los servicios no tienen endpoint /credential/{id}
+      // Simplemente devolvemos el usuario con el tipo seleccionado
+      // El token viene en la respuesta del servicio de identidad
+      final token = responseBody['token']?.toString();
+      
+      if (token == null) {
+        throw ServerException('Token no encontrado en la respuesta.');
+      }
+
+      // Crear el modelo de usuario según el tipo seleccionado
+      if (typeAccount == 'patient') {
+        log('✅ Creating patient user model');
+        return UserModel.fromLoginResponse(
           loginJson: responseBody,
-          professionalJson: professionalData,
+          userType: 'patient',
+        );
+      } else {
+        log('✅ Creating specialist user model');
+        return UserModel.fromLoginResponse(
+          loginJson: responseBody,
+          userType: 'specialist',
         );
       }
+
     } on ServerException {
       rethrow;
     } catch (e) {
@@ -223,62 +205,6 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     await Future.delayed(const Duration(seconds: 1));
     if (email.isEmpty || !email.contains('@')) {
       throw ServerException('Correo inválido');
-    }
-  }
-
-  @override
-  Future<Map<String, dynamic>?> checkProfessionalByCredentialId(String credentialId) async {
-    log('🔍 Checking professional service for credentialId: $credentialId');
-    final url = '${ApiConfig.professionalBaseUrl}/credential/$credentialId';
-    log('🌍 Making HTTP request to: $url');
-    
-    try {
-      final response = await apiClient.get(url);
-      log('📊 Professional service response status: ${response.statusCode}');
-      log('📊 Professional service response body: ${response.body}');
-
-      if (response.statusCode == 200) {
-        final responseBody = json.decode(response.body);
-        log('✅ Professional found: $responseBody');
-        return responseBody;
-      } else if (response.statusCode == 404) {
-        log('⚠️ Professional not found for credentialId: $credentialId');
-        return null;
-      } else {
-        log('❌ Unexpected response from professional service: ${response.statusCode}');
-        return null;
-      }
-    } catch (e) {
-      log('❌ Error checking professional service: $e');
-      return null;
-    }
-  }
-
-  @override
-  Future<Map<String, dynamic>?> checkPatientByCredentialId(String credentialId) async {
-    log('🔍 Checking patient service for credentialId: $credentialId');
-    final url = '${ApiConfig.patientBaseUrl}/credential/$credentialId';
-    log('🌍 Making HTTP request to: $url');
-    
-    try {
-      final response = await apiClient.get(url);
-      log('📊 Patient service response status: ${response.statusCode}');
-      log('📊 Patient service response body: ${response.body}');
-
-      if (response.statusCode == 200) {
-        final responseBody = json.decode(response.body);
-        log('✅ Patient found: $responseBody');
-        return responseBody;
-      } else if (response.statusCode == 404) {
-        log('⚠️ Patient not found for credentialId: $credentialId');
-        return null;
-      } else {
-        log('❌ Unexpected response from patient service: ${response.statusCode}');
-        return null;
-      }
-    } catch (e) {
-      log('❌ Error checking patient service: $e');
-      return null;
     }
   }
 }
