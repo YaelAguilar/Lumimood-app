@@ -12,9 +12,12 @@ import '../../features/notes/presentation/pages/note_detail_page.dart';
 import '../../features/notes/presentation/pages/notes_page.dart';
 import '../../features/specialistdashboard/presentation/bloc/specialistdashboard_bloc.dart';
 import '../../features/specialistdashboard/presentation/pages/specialist_dashboard_page.dart';
+import '../../features/specialistdashboard/presentation/pages/patient_notes_page.dart';
+import '../../features/specialistdashboard/presentation/pages/patient_tasks_page.dart';
 import '../../features/statistics/presentation/pages/statistics_page.dart';
 import '../../features/tasks/presentation/pages/tasks_page.dart';
 import '../../features/welcome/presentation/pages/welcome_page.dart';
+import '../../features/patients/domain/entities/patient_entity.dart';
 
 import '../injection_container.dart';
 
@@ -110,6 +113,26 @@ class AppRouter {
             path: '/specialist-dashboard',
             name: 'specialist_dashboard',
             builder: (context, state) {
+              return const SpecialistDashboardPage();
+            },
+          ),
+          GoRoute(
+            path: '/patient-notes',
+            name: 'patient_notes',
+            builder: (context, state) {
+              if (state.extra is PatientEntity) {
+                return PatientNotesPage(patient: state.extra as PatientEntity);
+              }
+              return const SpecialistDashboardPage();
+            },
+          ),
+          GoRoute(
+            path: '/patient-tasks',
+            name: 'patient_tasks',
+            builder: (context, state) {
+              if (state.extra is PatientEntity) {
+                return PatientTasksPage(patient: state.extra as PatientEntity);
+              }
               return const SpecialistDashboardPage();
             },
           ),
