@@ -87,6 +87,43 @@ class UserModel extends UserEntity {
     );
   }
   
+  // Nuevo factory method para pacientes
+  factory UserModel.fromLoginWithPatient({
+    required Map<String, dynamic> loginJson,
+    Map<String, dynamic>? patientJson,
+  }) {
+    log('UserModel.fromLoginWithPatient - Login JSON: $loginJson');
+    log('UserModel.fromLoginWithPatient - Patient JSON: $patientJson');
+    
+    final Map<String, dynamic> loginResult = loginJson['loginResult'] ?? loginJson;
+    final String? token = loginJson['token']?.toString();
+    
+    // Fail-Fast para campos críticos
+    final id = loginResult['id']?.toString();
+    if (id == null) {
+      throw Exception('Critical field "id" is null in login result: $loginResult');
+    }
+    if (token == null) {
+      throw Exception('Critical field "token" is null in login response: $loginJson');
+    }
+    
+    // Obtener el nombre del paciente
+    String name = patientJson?['name']?.toString() ??
+                  patientJson?['firstName']?.toString() ??
+                  loginResult['name']?.toString() ??
+                  'Paciente';
+
+    log('✅ User identified as patient: $name');
+    
+    return UserModel(
+      id: id,
+      email: loginResult['email']?.toString() ?? '',
+      name: name,
+      typeAccount: AccountType.patient,
+      token: token,
+    );
+  }
+  
   static AccountType _parseAccountType(dynamic typeAccount) {
     if (typeAccount == null) return AccountType.patient;
     

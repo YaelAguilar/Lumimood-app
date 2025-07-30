@@ -14,6 +14,7 @@ abstract class AuthRemoteDataSource {
   Future<void> registerSpecialist(RegisterSpecialistParams params);
   Future<void> forgotPassword({required String email});
   Future<Map<String, dynamic>?> checkProfessionalByCredentialId(String credentialId);
+  Future<Map<String, dynamic>?> checkPatientByCredentialId(String credentialId);
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -48,35 +49,56 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         throw ServerException('Respuesta de autenticación inválida del servidor.');
       }
 
+      // Paso 2: Verificar el tipo de cuenta real del usuario
       if (typeAccount == 'patient') {
-        log('🔍 User wants to log in as Patient. Verifying they are NOT a specialist...');
+        log('🔍 User wants to log in as Patient. Verifying user type...');
+        
+        // Primero verificamos si es un especialista
         final professionalData = await checkProfessionalByCredentialId(credentialId);
-
+        
         if (professionalData != null) {
-          // ¡Error! Este usuario es un especialista intentando entrar como paciente.
+          // Es un especialista intentando entrar como paciente
           log('❌ Login failed: A registered specialist attempted to log in as a patient.');
-          throw ServerException('Credenciales incorrectas. Este usuario es un especialista.');
+          throw ServerException('Esta cuenta pertenece a un especialista. Por favor, selecciona "Especialista" para iniciar sesión.');
         }
-
-        // Si no es un especialista, procedemos con el login de paciente.
-        log('✅ Verification successful: User is not a specialist. Logging in as patient.');
-        return UserModel.fromLoginWithProfessional(
+        
+        // Ahora verificamos si es un paciente
+        final patientData = await checkPatientByCredentialId(credentialId);
+        
+        if (patientData == null) {
+          // Las credenciales son válidas pero no está registrado ni como paciente ni como especialista
+          log('❌ Login failed: User is not registered as patient.');
+          throw ServerException('Esta cuenta no está registrada como paciente.');
+        }
+        
+        // Es un paciente válido
+        log('✅ Verification successful: User is a valid patient.');
+        return UserModel.fromLoginWithPatient(
           loginJson: responseBody,
-          professionalJson: null, // Forzamos a que el tipo de cuenta sea 'patient'.
+          patientJson: patientData,
         );
 
       } else { // typeAccount == 'specialist'
-        // El usuario INTENTA iniciar sesión como especialista. DEBEMOS verificarlo.
-        log('🔍 User wants to log in as Specialist. Verifying against professional service...');
+        log('🔍 User wants to log in as Specialist. Verifying user type...');
+        
+        // Verificamos si es un especialista
         final professionalData = await checkProfessionalByCredentialId(credentialId);
-
+        
         if (professionalData == null) {
-          // La credencial es válida, pero este usuario NO es un especialista.
-          log('❌ Login failed: A user with valid credentials is not a registered specialist.');
-          throw ServerException('Este usuario no está registrado como especialista.');
+          // Ahora verificamos si es un paciente intentando entrar como especialista
+          final patientData = await checkPatientByCredentialId(credentialId);
+          
+          if (patientData != null) {
+            log('❌ Login failed: A registered patient attempted to log in as a specialist.');
+            throw ServerException('Esta cuenta pertenece a un paciente. Por favor, selecciona "Paciente" para iniciar sesión.');
+          }
+          
+          // No está registrado en ninguno de los dos
+          log('❌ Login failed: User is not a registered specialist.');
+          throw ServerException('Esta cuenta no está registrada como especialista.');
         }
-
-        // Si encontramos los datos del especialista, procedemos con el login.
+        
+        // Es un especialista válido
         log('✅ Verification successful: User is a registered specialist.');
         return UserModel.fromLoginWithProfessional(
           loginJson: responseBody,
@@ -134,7 +156,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       }
       
       log('❌ REGISTER PATIENT: Registration failed with status ${response.statusCode}: $errorMessage');
-      throw ServerException('Error al registrar paciente: $errorMessage');
+      throw ServerException(errorMessage);
       
     } catch (e) {
       if (e is ServerException) rethrow;
@@ -186,7 +208,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       }
       
       log('❌ REGISTER SPECIALIST: Registration failed with status ${response.statusCode}: $errorMessage');
-      throw ServerException('Error al registrar especialista: $errorMessage');
+      throw ServerException(errorMessage);
       
     } catch (e) {
       if (e is ServerException) rethrow;
@@ -219,12 +241,43 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         final responseBody = json.decode(response.body);
         log('✅ Professional found: $responseBody');
         return responseBody;
+      } else if (response.statusCode == 404) {
+        log('⚠️ Professional not found for credentialId: $credentialId');
+        return null;
       } else {
-        log('⚠️ Professional not found (or error) for credentialId: $credentialId. Status: ${response.statusCode}');
+        log('❌ Unexpected response from professional service: ${response.statusCode}');
         return null;
       }
     } catch (e) {
       log('❌ Error checking professional service: $e');
+      return null;
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>?> checkPatientByCredentialId(String credentialId) async {
+    log('🔍 Checking patient service for credentialId: $credentialId');
+    final url = '${ApiConfig.patientBaseUrl}/credential/$credentialId';
+    log('🌍 Making HTTP request to: $url');
+    
+    try {
+      final response = await apiClient.get(url);
+      log('📊 Patient service response status: ${response.statusCode}');
+      log('📊 Patient service response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final responseBody = json.decode(response.body);
+        log('✅ Patient found: $responseBody');
+        return responseBody;
+      } else if (response.statusCode == 404) {
+        log('⚠️ Patient not found for credentialId: $credentialId');
+        return null;
+      } else {
+        log('❌ Unexpected response from patient service: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      log('❌ Error checking patient service: $e');
       return null;
     }
   }
