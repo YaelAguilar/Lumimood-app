@@ -3,5 +3,6 @@ import '../../../../core/error/failures.dart';
 import '../entities/patient_entity.dart';
 
 abstract class PatientRepository {
+  Future<Either<Failure, List<PatientEntity>>> getAllPatients();
   Future<Either<Failure, List<PatientEntity>>> getPatientsByProfessional(String professionalId);
 }

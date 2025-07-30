@@ -2,7 +2,9 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:developer';
 import '../../../../core/session/session_cubit.dart';
+import '../../../../core/usecases/usecase.dart';
 import '../../../patients/domain/entities/patient_entity.dart';
+import '../../../patients/domain/usecases/get_all_patients.dart';
 import '../../../patients/domain/usecases/get_patients_by_professional.dart';
 import '../../domain/entities/appointment_entity.dart';
 import '../../domain/usecases/get_appointments_by_professional.dart';
@@ -12,15 +14,18 @@ part 'specialistdashboard_state.dart';
 
 class SpecialistDashboardBloc extends Bloc<SpecialistDashboardEvent, SpecialistDashboardState> {
   final GetAppointmentsByProfessional getAppointments;
+  final GetAllPatients getAllPatients;
   final GetPatientsByProfessional getPatients;
   final SessionCubit sessionCubit;
 
   SpecialistDashboardBloc({
     required this.getAppointments,
+    required this.getAllPatients,
     required this.getPatients,
     required this.sessionCubit,
   }) : super(SpecialistDashboardState()) {
     on<LoadDashboardData>(_onLoadDashboardData);
+    on<LoadAllPatients>(_onLoadAllPatients);
     on<LoadPatients>(_onLoadPatients);
     on<ChangeSelectedDate>(_onChangeSelectedDate);
     on<RefreshDashboard>(_onRefreshDashboard);
@@ -70,6 +75,38 @@ class SpecialistDashboardBloc extends Bloc<SpecialistDashboardEvent, SpecialistD
       emit(state.copyWith(
         status: DashboardStatus.error, 
         errorMessage: 'Error inesperado: ${e.toString()}'
+      ));
+    }
+  }
+
+  Future<void> _onLoadAllPatients(LoadAllPatients event, Emitter<SpecialistDashboardState> emit) async {
+    emit(state.copyWith(patientsStatus: PatientsStatus.loading));
+    log('👥 SPECIALIST DASHBOARD: Loading all patients...');
+
+    try {
+      final patientsResult = await getAllPatients(NoParams());
+
+      patientsResult.fold(
+        (failure) {
+          log('❌ SPECIALIST DASHBOARD: Failed to load all patients - ${failure.message}');
+          emit(state.copyWith(
+            patientsStatus: PatientsStatus.error,
+            errorMessage: failure.message,
+          ));
+        },
+        (patients) {
+          log('✅ SPECIALIST DASHBOARD: Successfully loaded ${patients.length} patients');
+          emit(state.copyWith(
+            patientsStatus: PatientsStatus.loaded,
+            patients: patients,
+          ));
+        },
+      );
+    } catch (e) {
+      log('💥 SPECIALIST DASHBOARD: Unexpected error loading all patients - $e');
+      emit(state.copyWith(
+        patientsStatus: PatientsStatus.error,
+        errorMessage: 'Error inesperado: ${e.toString()}',
       ));
     }
   }

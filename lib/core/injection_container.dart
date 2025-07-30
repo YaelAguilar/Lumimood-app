@@ -59,6 +59,7 @@ import '../features/specialistdashboard/domain/usecases/get_appointments_by_prof
 import '../features/patients/data/datasources/patient_remote_datasource.dart';
 import '../features/patients/data/repositories/patient_repository_impl.dart';
 import '../features/patients/domain/repositories/patient_repository.dart';
+import '../features/patients/domain/usecases/get_all_patients.dart';
 import '../features/patients/domain/usecases/get_patients_by_professional.dart';
 
 
@@ -170,7 +171,8 @@ void _initSpecialist() {
   // Blocs
   getIt.registerFactory(() => SpecialistDashboardBloc(
     getAppointments: getIt(), 
-    getPatients: getIt(), // Nueva dependencia
+    getAllPatients: getIt(), // Nueva dependencia para obtener todos los pacientes
+    getPatients: getIt(),    // Dependencia existente para pacientes por profesional
     sessionCubit: getIt()
   ));
   
@@ -184,7 +186,8 @@ void _initSpecialist() {
 
 void _initPatients() {
   // Use cases
-  getIt.registerLazySingleton(() => GetPatientsByProfessional(getIt()));
+  getIt.registerLazySingleton(() => GetAllPatients(getIt()));           // Nuevo use case
+  getIt.registerLazySingleton(() => GetPatientsByProfessional(getIt())); // Use case existente
   
   // Repositories and DataSources
   getIt.registerLazySingleton<PatientRepository>(() => PatientRepositoryImpl(remoteDataSource: getIt()));

@@ -174,8 +174,8 @@ class _SpecialistDashboardViewState extends State<_SpecialistDashboardView> {
                 isSelected: _selectedTabIndex == 1,
                 onTap: () {
                   setState(() => _selectedTabIndex = 1);
-                  // Cargar pacientes cuando se selecciona la pestaña
-                  context.read<SpecialistDashboardBloc>().add(LoadPatients());
+                  // Cargar TODOS los pacientes cuando se selecciona la pestaña
+                  context.read<SpecialistDashboardBloc>().add(LoadAllPatients());
                 },
                 isCompact: isSmallScreen,
               ),
@@ -588,7 +588,7 @@ class _PatientsSection extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Mis Pacientes',
+                        'Todos los Pacientes',
                         style: GoogleFonts.interTight(
                           textStyle: textTheme.titleLarge,
                           fontWeight: FontWeight.bold,
@@ -597,7 +597,7 @@ class _PatientsSection extends StatelessWidget {
                       BlocBuilder<SpecialistDashboardBloc, SpecialistDashboardState>(
                         builder: (context, state) {
                           return Text(
-                            '${state.totalPatientsCount} pacientes registrados',
+                            '${state.totalPatientsCount} pacientes registrados en el sistema',
                             style: GoogleFonts.interTight(
                               textStyle: textTheme.bodySmall,
                               color: AppTheme.primaryText.withAlpha((0.6 * 255).round()),
@@ -612,7 +612,7 @@ class _PatientsSection extends StatelessWidget {
                   icon: const Icon(Icons.refresh, color: AppTheme.primaryColor),
                   onPressed: () {
                     HapticFeedback.lightImpact();
-                    context.read<SpecialistDashboardBloc>().add(LoadPatients());
+                    context.read<SpecialistDashboardBloc>().add(LoadAllPatients());
                   },
                 ),
               ],
@@ -646,7 +646,7 @@ class _PatientsSection extends StatelessWidget {
                           const SizedBox(height: 16),
                           ElevatedButton(
                             onPressed: () {
-                              context.read<SpecialistDashboardBloc>().add(LoadPatients());
+                              context.read<SpecialistDashboardBloc>().add(LoadAllPatients());
                             },
                             child: const Text('Reintentar'),
                           ),
@@ -669,14 +669,15 @@ class _PatientsSection extends StatelessWidget {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'Aún no tienes pacientes registrados',
+                            'No hay pacientes registrados en el sistema',
                             style: textTheme.titleMedium?.copyWith(
                               color: Colors.grey.shade600,
                             ),
+                            textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Comparte tu ID profesional para que puedan registrarse',
+                            'Los pacientes aparecerán aquí cuando se registren',
                             style: textTheme.bodySmall?.copyWith(
                               color: Colors.grey.shade500,
                             ),

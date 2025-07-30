@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'dart:developer';
 import '../../../../core/presentation/theme.dart';
 import '../../../patients/domain/entities/patient_entity.dart';
 
@@ -17,6 +18,15 @@ class PatientCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final age = _calculateAge(patient.birthDate);
+    final cleanEmail = _cleanEmailText(patient.email);
+    final cleanGender = _cleanGenderText(patient.gender);
+    
+    // Debug logs
+    log('📱 PATIENT CARD: Building card for ${patient.fullName}');
+    log('📱 PATIENT CARD: Raw email: "${patient.email}"');
+    log('📱 PATIENT CARD: Clean email: "$cleanEmail"');
+    log('📱 PATIENT CARD: Raw gender: "${patient.gender}"');
+    log('📱 PATIENT CARD: Clean gender: "$cleanGender"');
     
     return InkWell(
       onTap: () {
@@ -98,7 +108,7 @@ class PatientCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            '$age años • ${patient.gender}',
+                            '$age años • $cleanGender',
                             style: GoogleFonts.inter(
                               textStyle: textTheme.bodySmall,
                               color: AppTheme.primaryText.withAlpha((0.6 * 255).round()),
@@ -127,6 +137,8 @@ class PatientCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
+            
+            // EMAIL - SIEMPRE MOSTRAR (incluso si está vacío)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
@@ -143,9 +155,12 @@ class PatientCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      patient.email,
+                      cleanEmail.isNotEmpty ? cleanEmail : 'Email no disponible',
                       style: textTheme.bodyMedium?.copyWith(
-                        color: AppTheme.primaryText.withAlpha((0.7 * 255).round()),
+                        color: cleanEmail.isNotEmpty 
+                          ? AppTheme.primaryText.withAlpha((0.7 * 255).round())
+                          : Colors.grey.shade500,
+                        fontStyle: cleanEmail.isNotEmpty ? FontStyle.normal : FontStyle.italic,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -155,6 +170,8 @@ class PatientCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
+            
+            // TELÉFONO
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
@@ -171,9 +188,12 @@ class PatientCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      patient.phone,
+                      patient.phone.isNotEmpty ? patient.phone : 'Teléfono no disponible',
                       style: textTheme.bodyMedium?.copyWith(
-                        color: AppTheme.primaryText.withAlpha((0.7 * 255).round()),
+                        color: patient.phone.isNotEmpty 
+                          ? AppTheme.primaryText.withAlpha((0.7 * 255).round())
+                          : Colors.grey.shade500,
+                        fontStyle: patient.phone.isNotEmpty ? FontStyle.normal : FontStyle.italic,
                       ),
                     ),
                   ),
@@ -213,7 +233,44 @@ class PatientCard extends StatelessWidget {
     return age;
   }
 
+  String _cleanGenderText(String gender) {
+    // Limpiar formato {value: Masculino}
+    if (gender.startsWith('{value:') || gender.startsWith('{value :')) {
+      final match = RegExp(r'\{value\s*:\s*([^}]+)\}').firstMatch(gender);
+      if (match != null) {
+        return match.group(1)?.trim() ?? gender;
+      }
+    }
+    // Limpiar comillas
+    return gender.replaceAll('"', '').replaceAll("'", '').trim();
+  }
+
+  String _cleanEmailText(String email) {
+    if (email.isEmpty || email == 'null') return '';
+    
+    // Limpiar formato {value: email@domain.com}
+    if (email.startsWith('{value:') || email.startsWith('{value :')) {
+      final match = RegExp(r'\{value\s*:\s*([^}]+)\}').firstMatch(email);
+      if (match != null) {
+        email = match.group(1)?.trim() ?? email;
+      }
+    }
+    
+    // Limpiar comillas
+    email = email.replaceAll('"', '').replaceAll("'", '').trim();
+    
+    // Validar que sea un email válido
+    if (email.contains('@') && email.contains('.')) {
+      return email;
+    }
+    
+    return '';
+  }
+
   void _showPatientDetails(BuildContext context) {
+    final cleanEmail = _cleanEmailText(patient.email);
+    final cleanGender = _cleanGenderText(patient.gender);
+    
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -298,15 +355,19 @@ class PatientCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 16),
+                    
+                    // EMAIL - siempre mostrar
                     _DetailRow(
                       icon: Icons.email_outlined,
                       label: 'Email',
-                      value: patient.email,
+                      value: cleanEmail.isNotEmpty ? cleanEmail : 'No disponible',
+                      isPlaceholder: cleanEmail.isEmpty,
                     ),
                     _DetailRow(
                       icon: Icons.phone_outlined,
                       label: 'Teléfono',
-                      value: patient.phone,
+                      value: patient.phone.isNotEmpty ? patient.phone : 'No disponible',
+                      isPlaceholder: patient.phone.isEmpty,
                     ),
                     _DetailRow(
                       icon: Icons.cake_outlined,
@@ -316,7 +377,8 @@ class PatientCard extends StatelessWidget {
                     _DetailRow(
                       icon: Icons.person_outline,
                       label: 'Género',
-                      value: patient.gender,
+                      value: cleanGender.isNotEmpty ? cleanGender : 'No especificado',
+                      isPlaceholder: cleanGender.isEmpty,
                     ),
                     _DetailRow(
                       icon: Icons.badge_outlined,
@@ -344,11 +406,13 @@ class _DetailRow extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
+  final bool isPlaceholder;
 
   const _DetailRow({
     required this.icon,
     required this.label,
     required this.value,
+    this.isPlaceholder = false,
   });
 
   @override
@@ -379,9 +443,11 @@ class _DetailRow extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   value,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
+                    color: isPlaceholder ? Colors.grey.shade500 : Colors.black,
+                    fontStyle: isPlaceholder ? FontStyle.italic : FontStyle.normal,
                   ),
                 ),
               ],

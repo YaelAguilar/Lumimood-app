@@ -11,6 +11,16 @@ class PatientRepositoryImpl implements PatientRepository {
   PatientRepositoryImpl({required this.remoteDataSource});
 
   @override
+  Future<Either<Failure, List<PatientEntity>>> getAllPatients() async {
+    try {
+      final remotePatients = await remoteDataSource.getAllPatients();
+      return Right(remotePatients);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    }
+  }
+
+  @override
   Future<Either<Failure, List<PatientEntity>>> getPatientsByProfessional(String professionalId) async {
     try {
       final remotePatients = await remoteDataSource.getPatientsByProfessional(professionalId);
