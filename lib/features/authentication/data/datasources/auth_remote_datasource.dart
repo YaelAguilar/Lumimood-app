@@ -25,13 +25,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     log('🚀 AuthRemoteDataSource.login() CALLED - Email: $email, User selected type: $typeAccount');
     
     try {
-      // Paso 1: Autenticar contra el servicio de identidad (SIN typeAccount según Postman)
+      // Paso 1: Autenticar contra el servicio de identidad
       final response = await apiClient.post(
-        '${ApiConfig.identityBaseUrl}/login',
+        '${ApiConfig.identityBaseUrl}/login/',
         {
           'email': email, 
           'password': password
-          // NO enviamos typeAccount - según Postman no es necesario
         },
       );
 
@@ -45,46 +44,68 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       final responseBody = json.decode(response.body);
       final loginResult = responseBody['loginResult'];
+      final token = responseBody['token']?.toString();
       
-      if (loginResult == null) {
+      if (loginResult == null || token == null) {
         throw ServerException('Respuesta de autenticación inválida del servidor.');
       }
 
-      // Extraer información del usuario del loginResult
       final userEmail = loginResult['email']?.toString() ?? email;
-      final userName = loginResult['name']?.toString() ?? 'Usuario';
-      final userId = loginResult['id']?.toString();
       
-      if (userId == null) {
-        throw ServerException('ID de usuario no encontrado en la respuesta.');
-      }
-
-      log('🔍 User ID obtenido: $userId');
       log('🔍 User Email: $userEmail');
-      log('🔍 User Name: $userName');
 
-      // Paso 2: Según la documentación de Postman, los servicios no tienen endpoint /credential/{id}
-      // Simplemente devolvemos el usuario con el tipo seleccionado
-      // El token viene en la respuesta del servicio de identidad
-      final token = responseBody['token']?.toString();
-      
-      if (token == null) {
-        throw ServerException('Token no encontrado en la respuesta.');
-      }
-
-      // Crear el modelo de usuario según el tipo seleccionado
+      // Paso 2: Validar el tipo de cuenta real vs el seleccionado usando EMAIL
       if (typeAccount == 'patient') {
-        log('✅ Creating patient user model');
-        return UserModel.fromLoginResponse(
-          loginJson: responseBody,
-          userType: 'patient',
-        );
-      } else {
-        log('✅ Creating specialist user model');
-        return UserModel.fromLoginResponse(
-          loginJson: responseBody,
-          userType: 'specialist',
-        );
+        log('🔍 User wants to log in as Patient. Validating...');
+        
+        // Verificar si existe como paciente
+        final patientData = await _checkIfPatientExists(userEmail);
+        
+        if (patientData != null) {
+          // Es realmente un paciente
+          log('✅ Validation successful: User is a legitimate patient.');
+          return UserModel.fromLoginWithPatient(
+            loginJson: responseBody,
+            patientJson: patientData,
+          );
+        } else {
+          // No es paciente, verificar si es especialista para dar mensaje específico
+          final professionalData = await _checkIfProfessionalExists(userEmail);
+          
+          if (professionalData != null) {
+            log('❌ Login failed: User is a specialist trying to log in as patient.');
+            throw ServerException('Esta cuenta pertenece a un especialista. Por favor, selecciona "Especialista" para iniciar sesión.');
+          } else {
+            log('❌ Login failed: User credentials are valid but not registered as patient.');
+            throw ServerException('Esta cuenta no está registrada como paciente.');
+          }
+        }
+        
+      } else { // typeAccount == 'specialist'
+        log('🔍 User wants to log in as Specialist. Validating...');
+        
+        // Verificar si existe como especialista
+        final professionalData = await _checkIfProfessionalExists(userEmail);
+        
+        if (professionalData != null) {
+          // Es realmente un especialista
+          log('✅ Validation successful: User is a legitimate specialist.');
+          return UserModel.fromLoginWithProfessional(
+            loginJson: responseBody,
+            professionalJson: professionalData,
+          );
+        } else {
+          // No es especialista, verificar si es paciente para dar mensaje específico
+          final patientData = await _checkIfPatientExists(userEmail);
+          
+          if (patientData != null) {
+            log('❌ Login failed: User is a patient trying to log in as specialist.');
+            throw ServerException('Esta cuenta pertenece a un paciente. Por favor, selecciona "Paciente" para iniciar sesión.');
+          } else {
+            log('❌ Login failed: User credentials are valid but not registered as specialist.');
+            throw ServerException('Esta cuenta no está registrada como especialista.');
+          }
+        }
       }
 
     } on ServerException {
@@ -92,6 +113,111 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     } catch (e) {
       log('Error in login request: $e');
       throw ServerException('Error de conexión: ${e.toString()}');
+    }
+  }
+
+  // Método para verificar si un usuario existe como paciente (por email)
+  Future<Map<String, dynamic>?> _checkIfPatientExists(String email) async {
+    log('🔍 Checking if user exists as patient by email: $email');
+    
+    try {
+      // Intentamos obtener todos los pacientes y buscar por email
+      // Según Postman: GET /patient/ (GetAllIdPatient)
+      final url = '${ApiConfig.patientBaseUrl}/';
+      log('🌍 Making HTTP request to: $url');
+      
+      final response = await apiClient.get(url);
+      log('📊 Patient service response status: ${response.statusCode}');
+      
+      if (response.statusCode == 200) {
+        final responseBody = json.decode(response.body);
+        log('✅ Patients list retrieved: $responseBody');
+        
+        // Si la respuesta es una lista, buscar por email
+        if (responseBody is List) {
+          for (var patient in responseBody) {
+            if (patient is Map<String, dynamic> && patient['email'] == email) {
+              log('✅ Patient found by email: $patient');
+              return patient;
+            }
+          }
+        } else if (responseBody is Map<String, dynamic>) {
+          // Si la respuesta es un objeto con una lista dentro
+          if (responseBody.containsKey('patients')) {
+            final patientsList = responseBody['patients'] as List?;
+            if (patientsList != null) {
+              for (var patient in patientsList) {
+                if (patient is Map<String, dynamic> && patient['email'] == email) {
+                  log('✅ Patient found by email: $patient');
+                  return patient;
+                }
+              }
+            }
+          }
+        }
+        
+        log('⚠️ Patient not found for email: $email');
+        return null;
+      } else {
+        log('❌ Unexpected response from patient service: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      log('❌ Error checking patient service: $e');
+      return null;
+    }
+  }
+
+  // Método para verificar si un usuario existe como profesional (por email)
+  Future<Map<String, dynamic>?> _checkIfProfessionalExists(String email) async {
+    log('🔍 Checking if user exists as professional by email: $email');
+    
+    try {
+      // Según la documentación de Postman, no hay un endpoint para obtener todos los profesionales
+      // Pero podemos intentar hacer una búsqueda inteligente
+      // Intentamos usar el endpoint que más se parecería
+      final url = '${ApiConfig.professionalBaseUrl}/';
+      log('🌍 Making HTTP request to: $url');
+      
+      final response = await apiClient.get(url);
+      log('📊 Professional service response status: ${response.statusCode}');
+      
+      if (response.statusCode == 200) {
+        final responseBody = json.decode(response.body);
+        log('✅ Professional service responded: $responseBody');
+        
+        // Si la respuesta es una lista, buscar por email
+        if (responseBody is List) {
+          for (var professional in responseBody) {
+            if (professional is Map<String, dynamic> && professional['email'] == email) {
+              log('✅ Professional found by email: $professional');
+              return professional;
+            }
+          }
+        } else if (responseBody is Map<String, dynamic>) {
+          // Si la respuesta es un objeto con una lista dentro
+          if (responseBody.containsKey('professionals')) {
+            final professionalsList = responseBody['professionals'] as List?;
+            if (professionalsList != null) {
+              for (var professional in professionalsList) {
+                if (professional is Map<String, dynamic> && professional['email'] == email) {
+                  log('✅ Professional found by email: $professional');
+                  return professional;
+                }
+              }
+            }
+          }
+        }
+        
+        log('⚠️ Professional not found for email: $email');
+        return null;
+      } else {
+        log('❌ Unexpected response from professional service: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      log('❌ Error checking professional service: $e');
+      return null;
     }
   }
 
