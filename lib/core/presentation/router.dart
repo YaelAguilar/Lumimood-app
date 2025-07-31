@@ -19,7 +19,7 @@ import '../../features/tasks/presentation/pages/tasks_page.dart';
 import '../../features/welcome/presentation/pages/welcome_page.dart';
 import '../../features/patients/domain/entities/patient_entity.dart';
 import '../../features/observations/presentation/pages/observations_page.dart';
-import '../../features/specialistdashboard/presentation/pages/patient_observations_page.dart';
+import '../../features/observations/presentation/pages/patient_observations_page.dart';
 
 
 import '../injection_container.dart';

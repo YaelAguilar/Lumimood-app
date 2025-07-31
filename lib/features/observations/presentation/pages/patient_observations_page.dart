@@ -1,3 +1,5 @@
+// ARCHIVO: lib/features/observations/presentation/pages/patient_observations_page.dart
+
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -10,8 +12,8 @@ import 'dart:developer';
 import '../../../../core/injection_container.dart';
 import '../../../../core/presentation/theme.dart';
 import '../../../welcome/presentation/widgets/animated_background.dart';
-import '../../../observations/domain/entities/observation.dart';
-import '../../../observations/presentation/bloc/observations_bloc.dart';
+import '../../domain/entities/observation.dart';
+import '../bloc/observations_bloc.dart';
 import '../../../patients/domain/entities/patient_entity.dart';
 
 class PatientObservationsPage extends StatelessWidget {
@@ -115,7 +117,7 @@ class _PatientObservationsView extends StatelessWidget {
                     }
                   },
                   builder: (context, state) {
-                    log('📋 PATIENT OBSERVATIONS: Current state - ${state.status}, Observations count: ${state.filteredObservations.length}');
+                    log('📋 PATIENT OBSERVATIONS: Current state - ${state.status}, Total observations: ${state.observations.length}, Filtered: ${state.filteredObservations.length}');
                     
                     if (state.status == ObservationsStatus.loading || state.status == ObservationsStatus.initial) {
                       return const Center(
@@ -163,10 +165,12 @@ class _PatientObservationsView extends StatelessWidget {
                       );
                     }
                     
-                    // Filtrar observaciones del paciente específico
-                    final patientObservations = state.filteredObservations.where(
+                    // CORRECCIÓN: Solo filtrar por patientId, sin aplicar filtros adicionales
+                    final patientObservations = state.observations.where(
                       (observation) => observation.patientId == patient.id
                     ).toList();
+                    
+                    log('📋 PATIENT OBSERVATIONS: Found ${patientObservations.length} observations for patient ${patient.id}');
                     
                     if (patientObservations.isEmpty) {
                       return _EmptyObservationsView(patient: patient);
@@ -457,7 +461,7 @@ class _PatientObservationCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Para ${patient.name}',
+                        'Por ${observation.professionalName}',
                         style: textTheme.bodySmall?.copyWith(
                           color: AppTheme.primaryText.withAlpha(120),
                         ),
@@ -644,23 +648,47 @@ class _AddObservationFAB extends StatelessWidget {
               onPressed: () => Navigator.of(dialogContext).pop(),
               child: const Text('Cancelar'),
             ),
-            ElevatedButton(
-              onPressed: () {
-                if (contentController.text.trim().isNotEmpty) {
-                  context.read<ObservationsBloc>().add(AddNewObservation(
-                    patientId: patient.id,
-                    content: contentController.text.trim(),
-                    type: selectedType,
-                    priority: selectedPriority,
-                  ));
-                  Navigator.of(dialogContext).pop();
-                }
+            BlocBuilder<ObservationsBloc, ObservationsState>(
+              builder: (context, state) {
+                final isLoading = state.creationStatus == ObservationCreationStatus.loading;
+                
+                return ElevatedButton(
+                  onPressed: isLoading ? null : () {
+                    if (contentController.text.trim().isNotEmpty) {
+                      log('📋 ADDING OBSERVATION: Patient ID: ${patient.id}, Content: ${contentController.text.trim()}');
+                      
+                      context.read<ObservationsBloc>().add(AddNewObservation(
+                        patientId: patient.id,
+                        content: contentController.text.trim(),
+                        type: selectedType,
+                        priority: selectedPriority,
+                      ));
+                      Navigator.of(dialogContext).pop();
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Por favor, escribe el contenido de la observación'),
+                          backgroundColor: Colors.orange,
+                        ),
+                      );
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryColor,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: isLoading 
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text('Agregar'),
+                );
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryColor,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Agregar'),
             ),
           ],
           shape: RoundedRectangleBorder(

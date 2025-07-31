@@ -38,6 +38,8 @@ class ObservationsBloc extends Bloc<ObservationsEvent, ObservationsState> {
         return;
       }
 
+      log('📋 OBSERVATIONS BLOC: Loading observations for patient: $patientId');
+
       final result = await getObservationsByPatient(
         GetObservationsByPatientParams(patientId: patientId),
       );
@@ -69,18 +71,22 @@ class ObservationsBloc extends Bloc<ObservationsEvent, ObservationsState> {
   }
 
   Future<void> _onAddNewObservation(AddNewObservation event, Emitter<ObservationsState> emit) async {
+    log('📋 OBSERVATIONS BLOC: Adding new observation for patient ${event.patientId}');
     emit(state.copyWith(creationStatus: ObservationCreationStatus.loading));
     
     try {
       final professional = _getProfessionalInfo();
       
       if (professional == null) {
+        log('❌ OBSERVATIONS BLOC: No professional info found');
         emit(state.copyWith(
           creationStatus: ObservationCreationStatus.error,
           errorMessage: 'No se pudo identificar al profesional',
         ));
         return;
       }
+
+      log('📋 OBSERVATIONS BLOC: Professional info - ID: ${professional['id']}, Name: ${professional['name']}');
 
       final result = await addObservation(AddObservationParams(
         patientId: event.patientId,
@@ -102,7 +108,8 @@ class ObservationsBloc extends Bloc<ObservationsEvent, ObservationsState> {
         (_) {
           log('✅ OBSERVATIONS BLOC: Observation added successfully');
           emit(state.copyWith(creationStatus: ObservationCreationStatus.success));
-          // Recargar las observaciones
+          
+          // Recargar las observaciones después de agregar una nueva
           add(LoadObservations(patientId: event.patientId));
         },
       );
@@ -114,23 +121,34 @@ class ObservationsBloc extends Bloc<ObservationsEvent, ObservationsState> {
       ));
     }
     
-    // Reset creation status
-    await Future.delayed(const Duration(milliseconds: 500));
+    // Reset creation status después de un tiempo
+    await Future.delayed(const Duration(milliseconds: 1000));
     if (!isClosed) {
       emit(state.copyWith(creationStatus: ObservationCreationStatus.initial));
     }
   }
 
   void _onFilterObservations(FilterObservations event, Emitter<ObservationsState> emit) {
+    log('📋 OBSERVATIONS BLOC: Filtering observations - Type: ${event.type}, Priority: ${event.priority}');
+    
+    // Si no hay filtros, mostrar todas las observaciones
+    if (event.type == null && event.priority == null) {
+      emit(state.copyWith(
+        filteredObservations: state.observations,
+        selectedType: null,
+        selectedPriority: null,
+      ));
+      return;
+    }
+
     final filtered = state.observations.where((observation) {
-      if (event.type != null && observation.type != event.type) {
-        return false;
-      }
-      if (event.priority != null && observation.priority != event.priority) {
-        return false;
-      }
-      return true;
+      bool matchesType = event.type == null || observation.type == event.type;
+      bool matchesPriority = event.priority == null || observation.priority == event.priority;
+      
+      return matchesType && matchesPriority;
     }).toList();
+
+    log('📋 OBSERVATIONS BLOC: Filtered ${filtered.length} observations from ${state.observations.length} total');
 
     emit(state.copyWith(
       filteredObservations: filtered,
@@ -142,19 +160,23 @@ class ObservationsBloc extends Bloc<ObservationsEvent, ObservationsState> {
   String? _getCurrentPatientId() {
     final sessionState = sessionCubit.state;
     if (sessionState is AuthenticatedSessionState) {
+      log('📋 OBSERVATIONS BLOC: Current patient ID: ${sessionState.user.id}');
       return sessionState.user.id;
     }
+    log('❌ OBSERVATIONS BLOC: No authenticated session found');
     return null;
   }
 
   Map<String, String>? _getProfessionalInfo() {
     final sessionState = sessionCubit.state;
     if (sessionState is AuthenticatedSessionState) {
-      return {
+      final professionalInfo = {
         'id': sessionState.user.id,
-        'name': 'Dr. ${sessionState.user.name}',
+        'name': sessionState.user.name,
       };
+      return professionalInfo;
     }
+    log('❌ OBSERVATIONS BLOC: No professional session found');
     return null;
   }
 }

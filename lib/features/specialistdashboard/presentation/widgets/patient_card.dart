@@ -7,7 +7,7 @@ import '../../../../core/presentation/theme.dart';
 import '../../../patients/domain/entities/patient_entity.dart';
 import '../pages/patient_notes_page.dart';
 import '../pages/patient_tasks_page.dart';
-import '../pages/patient_observations_page.dart';
+import '../../../observations/presentation/pages/patient_observations_page.dart';
 
 class PatientCard extends StatelessWidget {
   final PatientEntity patient;
