@@ -23,8 +23,12 @@ class PatientObservationsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    log('🔍 DEBUG: Building PatientObservationsPage for patient: ${patient.id}');
     return BlocProvider(
-      create: (context) => getIt<ObservationsBloc>()..add(LoadObservations(patientId: patient.id)),
+      create: (context) {
+        log('🔍 DEBUG: Creating ObservationsBloc');
+        return getIt<ObservationsBloc>()..add(LoadObservations(patientId: patient.id));
+      },
       child: _PatientObservationsView(patient: patient),
     );
   }
@@ -97,6 +101,7 @@ class _PatientObservationsView extends StatelessWidget {
                     }
                     
                     if (state.creationStatus == ObservationCreationStatus.success) {
+                      log('✅ PATIENT OBSERVATIONS: Observation created successfully');
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('Observación agregada exitosamente'),
@@ -107,6 +112,7 @@ class _PatientObservationsView extends StatelessWidget {
                     }
                     
                     if (state.creationStatus == ObservationCreationStatus.error) {
+                      log('❌ PATIENT OBSERVATIONS: Error creating observation - ${state.errorMessage}');
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(state.errorMessage ?? 'Error al agregar la observación'),
@@ -165,7 +171,7 @@ class _PatientObservationsView extends StatelessWidget {
                       );
                     }
                     
-                    // CORRECCIÓN: Solo filtrar por patientId, sin aplicar filtros adicionales
+                    // Filtrar observaciones por patientId
                     final patientObservations = state.observations.where(
                       (observation) => observation.patientId == patient.id
                     ).toList();
@@ -513,6 +519,7 @@ class _AddObservationFAB extends StatelessWidget {
   Widget build(BuildContext context) {
     return FloatingActionButton.extended(
       onPressed: () {
+        log('🔍 DEBUG: FAB pressed for patient: ${patient.id}');
         HapticFeedback.lightImpact();
         _showAddObservationDialog(context);
       },
@@ -526,6 +533,8 @@ class _AddObservationFAB extends StatelessWidget {
   }
 
   void _showAddObservationDialog(BuildContext context) {
+    log('🔍 DEBUG: Showing add observation dialog');
+    
     final TextEditingController contentController = TextEditingController();
     ObservationType selectedType = ObservationType.general;
     ObservationPriority selectedPriority = ObservationPriority.normal;
@@ -585,6 +594,7 @@ class _AddObservationFAB extends StatelessWidget {
                     setState(() {
                       selectedType = value;
                     });
+                    log('🔍 DEBUG: Selected type changed to: ${value.displayName}');
                   }
                 },
               ),
@@ -620,6 +630,7 @@ class _AddObservationFAB extends StatelessWidget {
                     setState(() {
                       selectedPriority = value;
                     });
+                    log('🔍 DEBUG: Selected priority changed to: ${value.displayName}');
                   }
                 },
               ),
@@ -640,12 +651,18 @@ class _AddObservationFAB extends StatelessWidget {
                   ),
                 ),
                 autofocus: true,
+                onChanged: (value) {
+                  log('🔍 DEBUG: Content changed, length: ${value.length}');
+                },
               ),
             ],
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
+              onPressed: () {
+                log('🔍 DEBUG: Cancel button pressed');
+                Navigator.of(dialogContext).pop();
+              },
               child: const Text('Cancelar'),
             ),
             BlocBuilder<ObservationsBloc, ObservationsState>(
@@ -654,17 +671,51 @@ class _AddObservationFAB extends StatelessWidget {
                 
                 return ElevatedButton(
                   onPressed: isLoading ? null : () {
+                    log('🔍 DEBUG: Add button pressed');
+                    log('🔍 DEBUG: Content length: ${contentController.text.trim().length}');
+                    
                     if (contentController.text.trim().isNotEmpty) {
-                      log('📋 ADDING OBSERVATION: Patient ID: ${patient.id}, Content: ${contentController.text.trim()}');
+                      log('🔍 DEBUG: Content is not empty');
+                      log('🔍 DEBUG: Patient ID: ${patient.id}');
+                      log('🔍 DEBUG: Selected type: ${selectedType.displayName}');
+                      log('🔍 DEBUG: Selected priority: ${selectedPriority.displayName}');
+                      log('🔍 DEBUG: Content: "${contentController.text.trim()}"');
                       
-                      context.read<ObservationsBloc>().add(AddNewObservation(
-                        patientId: patient.id,
-                        content: contentController.text.trim(),
-                        type: selectedType,
-                        priority: selectedPriority,
-                      ));
-                      Navigator.of(dialogContext).pop();
+                      try {
+                        log('🔍 DEBUG: About to add AddNewObservation event');
+                        
+                        // Verificar que el context y el bloc estén disponibles
+                        final bloc = context.read<ObservationsBloc>();
+                        log('🔍 DEBUG: Got bloc: ${bloc.runtimeType}');
+                        
+                        final event = AddNewObservation(
+                          patientId: patient.id,
+                          content: contentController.text.trim(),
+                          type: selectedType,
+                          priority: selectedPriority,
+                        );
+                        log('🔍 DEBUG: Created event: $event');
+                        
+                        bloc.add(event);
+                        log('🔍 DEBUG: Event added successfully to bloc');
+                        
+                        Navigator.of(dialogContext).pop();
+                        log('🔍 DEBUG: Dialog closed');
+                        
+                      } catch (e, stackTrace) {
+                        log('❌ DEBUG: Error adding event: $e');
+                        log('❌ DEBUG: Stack trace: $stackTrace');
+                        
+                        // Mostrar error al usuario
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error: $e'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
                     } else {
+                      log('🔍 DEBUG: Content is empty, showing snackbar');
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('Por favor, escribe el contenido de la observación'),

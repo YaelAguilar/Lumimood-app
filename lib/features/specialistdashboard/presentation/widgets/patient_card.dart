@@ -1,13 +1,15 @@
+// ARCHIVO: lib/features/specialistdashboard/presentation/widgets/patient_card.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'dart:developer';
+// AÑADIR: Import de go_router para pushNamed
+import 'package:go_router/go_router.dart';
 import '../../../../core/presentation/theme.dart';
 import '../../../patients/domain/entities/patient_entity.dart';
-import '../pages/patient_notes_page.dart';
-import '../pages/patient_tasks_page.dart';
-import '../../../observations/presentation/pages/patient_observations_page.dart';
+// REMOVER: Imports no utilizados (ya no los necesitamos porque usamos GoRouter)
 
 class PatientCard extends StatelessWidget {
   final PatientEntity patient;
@@ -391,11 +393,8 @@ void _showPatientActions(BuildContext context) {
                   color: Colors.blue,
                   onTap: () {
                     Navigator.of(context).pop();
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => PatientNotesPage(patient: patient),
-                      ),
-                    );
+                    // CORREGIR: Usar context.pushNamed con go_router
+                    context.pushNamed('patient_notes', extra: patient);
                   },
                 ),
                 const SizedBox(height: 12),
@@ -406,15 +405,12 @@ void _showPatientActions(BuildContext context) {
                   color: Colors.green,
                   onTap: () {
                     Navigator.of(context).pop();
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => PatientTasksPage(patient: patient),
-                      ),
-                    );
+                    // CORREGIR: Usar context.pushNamed con go_router
+                    context.pushNamed('patient_tasks', extra: patient);
                   },
                 ),
                 const SizedBox(height: 12),
-                // NUEVA OPCIÓN PARA OBSERVACIONES - USAR Navigator.push en lugar de context.pushNamed
+                // CORREGIR: Usar context.pushNamed para observaciones
                 _ActionButton(
                   icon: Icons.visibility_outlined,
                   title: 'Ver Observaciones',
@@ -422,11 +418,8 @@ void _showPatientActions(BuildContext context) {
                   color: Colors.purple,
                   onTap: () {
                     Navigator.of(context).pop();
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => PatientObservationsPage(patient: patient),
-                      ),
-                    );
+                    // CORREGIR: Usar context.pushNamed con go_router
+                    context.pushNamed('patient_observations', extra: patient);
                   },
                 ),
                 const SizedBox(height: 12),

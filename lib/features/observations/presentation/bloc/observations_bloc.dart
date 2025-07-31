@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:developer';
 import '../../../../core/session/session_cubit.dart';
+import '../../../authentication/domain/entities/user_entity.dart';
 import '../../domain/entities/observation.dart';
 import '../../domain/usecases/add_observation.dart';
 import '../../domain/usecases/get_observations_by_patient.dart';
@@ -72,49 +73,89 @@ class ObservationsBloc extends Bloc<ObservationsEvent, ObservationsState> {
 
   Future<void> _onAddNewObservation(AddNewObservation event, Emitter<ObservationsState> emit) async {
     log('📋 OBSERVATIONS BLOC: Adding new observation for patient ${event.patientId}');
-    emit(state.copyWith(creationStatus: ObservationCreationStatus.loading));
     
     try {
-      final professional = _getProfessionalInfo();
+      emit(state.copyWith(creationStatus: ObservationCreationStatus.loading));
       
-      if (professional == null) {
-        log('❌ OBSERVATIONS BLOC: No professional info found');
+      // PASO 1: Validar entrada
+      if (event.patientId.isEmpty || event.content.trim().isEmpty) {
+        log('❌ OBSERVATIONS BLOC: Invalid input data');
         emit(state.copyWith(
           creationStatus: ObservationCreationStatus.error,
-          errorMessage: 'No se pudo identificar al profesional',
+          errorMessage: 'Datos de entrada inválidos',
         ));
         return;
       }
 
-      log('📋 OBSERVATIONS BLOC: Professional info - ID: ${professional['id']}, Name: ${professional['name']}');
+      // PASO 2: Verificar sesión
+      final sessionState = sessionCubit.state;
+      log('📋 OBSERVATIONS BLOC: Session state type: ${sessionState.runtimeType}');
+      
+      if (sessionState is! AuthenticatedSessionState) {
+        log('❌ OBSERVATIONS BLOC: No authenticated session found');
+        emit(state.copyWith(
+          creationStatus: ObservationCreationStatus.error,
+          errorMessage: 'Sesión no válida. Por favor, inicia sesión nuevamente.',
+        ));
+        return;
+      }
 
-      final result = await addObservation(AddObservationParams(
+      // PASO 3: Verificar que el usuario sea especialista
+      final user = sessionState.user;
+      log('📋 OBSERVATIONS BLOC: User type: ${user.typeAccount}');
+      
+      if (user.typeAccount != AccountType.specialist) {
+        log('❌ OBSERVATIONS BLOC: User is not a specialist');
+        emit(state.copyWith(
+          creationStatus: ObservationCreationStatus.error,
+          errorMessage: 'Solo los especialistas pueden agregar observaciones.',
+        ));
+        return;
+      }
+
+      // PASO 4: Obtener información del profesional
+      final professionalId = user.id;
+      final professionalName = user.name;
+
+      log('📋 OBSERVATIONS BLOC: Professional info - ID: $professionalId, Name: $professionalName');
+
+      // PASO 5: Crear los parámetros
+      final params = AddObservationParams(
         patientId: event.patientId,
-        professionalId: professional['id']!,
-        professionalName: professional['name']!,
-        content: event.content,
+        professionalId: professionalId,
+        professionalName: professionalName,
+        content: event.content.trim(),
         type: event.type,
         priority: event.priority,
-      ));
+      );
 
+      log('📋 OBSERVATIONS BLOC: Calling addObservation use case...');
+
+      // PASO 6: Ejecutar el caso de uso
+      final result = await addObservation(params);
+
+      // PASO 7: Manejar el resultado
       result.fold(
         (failure) {
           log('❌ OBSERVATIONS BLOC: Failed to add observation - ${failure.message}');
           emit(state.copyWith(
             creationStatus: ObservationCreationStatus.error,
-            errorMessage: failure.message,
+            errorMessage: 'Error al guardar: ${failure.message}',
           ));
         },
         (_) {
           log('✅ OBSERVATIONS BLOC: Observation added successfully');
           emit(state.copyWith(creationStatus: ObservationCreationStatus.success));
           
-          // Recargar las observaciones después de agregar una nueva
+          // Recargar las observaciones
           add(LoadObservations(patientId: event.patientId));
         },
       );
-    } catch (e) {
-      log('💥 OBSERVATIONS BLOC: Unexpected error adding observation - $e');
+    } catch (e, stackTrace) {
+      log('💥 OBSERVATIONS BLOC: Unexpected error adding observation');
+      log('💥 Error: $e');
+      log('💥 Stack trace: $stackTrace');
+      
       emit(state.copyWith(
         creationStatus: ObservationCreationStatus.error,
         errorMessage: 'Error inesperado: ${e.toString()}',
@@ -122,9 +163,14 @@ class ObservationsBloc extends Bloc<ObservationsEvent, ObservationsState> {
     }
     
     // Reset creation status después de un tiempo
-    await Future.delayed(const Duration(milliseconds: 1000));
-    if (!isClosed) {
-      emit(state.copyWith(creationStatus: ObservationCreationStatus.initial));
+    try {
+      await Future.delayed(const Duration(milliseconds: 1500));
+      if (!isClosed) {
+        emit(state.copyWith(creationStatus: ObservationCreationStatus.initial));
+      }
+    } catch (e) {
+      // Ignorar errores en el reset
+      log('⚠️ OBSERVATIONS BLOC: Error resetting status: $e');
     }
   }
 
@@ -160,23 +206,16 @@ class ObservationsBloc extends Bloc<ObservationsEvent, ObservationsState> {
   String? _getCurrentPatientId() {
     final sessionState = sessionCubit.state;
     if (sessionState is AuthenticatedSessionState) {
-      log('📋 OBSERVATIONS BLOC: Current patient ID: ${sessionState.user.id}');
-      return sessionState.user.id;
+      // CORRECCIÓN: Solo devolver el ID si es un paciente
+      if (sessionState.user.typeAccount == AccountType.patient) {
+        log('📋 OBSERVATIONS BLOC: Current patient ID: ${sessionState.user.id}');
+        return sessionState.user.id;
+      } else {
+        log('📋 OBSERVATIONS BLOC: Current user is not a patient, returning null');
+        return null;
+      }
     }
     log('❌ OBSERVATIONS BLOC: No authenticated session found');
-    return null;
-  }
-
-  Map<String, String>? _getProfessionalInfo() {
-    final sessionState = sessionCubit.state;
-    if (sessionState is AuthenticatedSessionState) {
-      final professionalInfo = {
-        'id': sessionState.user.id,
-        'name': sessionState.user.name,
-      };
-      return professionalInfo;
-    }
-    log('❌ OBSERVATIONS BLOC: No professional session found');
     return null;
   }
 }

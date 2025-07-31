@@ -66,7 +66,7 @@ void main() async {
     log('❌ ERROR during dependency injection: $e');
   }
 
-  // Configurar manejo global de errores
+  // CORRECCIÓN: Configurar manejo global de errores de forma más robusta
   FlutterError.onError = (FlutterErrorDetails details) {
     log('❌ Flutter Error: ${details.exception}');
     log('Stack trace: ${details.stack}');
@@ -110,43 +110,61 @@ class MyApp extends StatelessWidget {
         // Configurar el locale por defecto
         locale: const Locale('es', ''),
         
+        // CORRECCIÓN: Mejorar el manejo de errores de UI
         builder: (context, child) {
-          // Wrapper para manejo de errores en UI
+          // Configurar ErrorWidget de forma más robusta
           ErrorWidget.builder = (FlutterErrorDetails details) {
+            // AÑADIR: Logging del error
+            log('🚨 UI ERROR: ${details.exception}');
+            log('🚨 UI ERROR STACK: ${details.stack}');
+            
             return Material(
               child: Container(
                 color: Colors.red.shade50,
+                padding: const EdgeInsets.all(24.0),
                 child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.error_outline,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.error_outline,
+                        color: Colors.red,
+                        size: 60,
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Oops! Algo salió mal',
+                        style: TextStyle(
                           color: Colors.red,
-                          size: 60,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
                         ),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Oops! Algo salió mal',
-                          style: TextStyle(
-                            color: Colors.red,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      // CORRECCIÓN: Mostrar mensaje más user-friendly
+                      Text(
+                        'Reinicia la aplicación o contacta soporte si el problema persiste.',
+                        style: const TextStyle(
+                          color: Colors.red,
+                          fontSize: 16,
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          details.exception.toString(),
-                          style: const TextStyle(
-                            color: Colors.red,
-                            fontSize: 16,
-                          ),
-                          textAlign: TextAlign.center,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      // AÑADIR: Botón para reiniciar
+                      ElevatedButton(
+                        onPressed: () {
+                          // Forzar hot restart en desarrollo
+                          log('🔄 USER: Attempting to restart app...');
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
                         ),
-                      ],
-                    ),
+                        child: const Text('Reintentar'),
+                      ),
+                    ],
                   ),
                 ),
               ),

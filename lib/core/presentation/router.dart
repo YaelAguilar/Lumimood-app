@@ -1,3 +1,5 @@
+// ARCHIVO: lib/core/presentation/router.dart
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/authentication/presentation/bloc/auth_bloc.dart';
@@ -20,7 +22,8 @@ import '../../features/welcome/presentation/pages/welcome_page.dart';
 import '../../features/patients/domain/entities/patient_entity.dart';
 import '../../features/observations/presentation/pages/observations_page.dart';
 import '../../features/observations/presentation/pages/patient_observations_page.dart';
-
+// AÑADIR IMPORT DEL BLOC DE OBSERVACIONES
+import '../../features/observations/presentation/bloc/observations_bloc.dart';
 
 import '../injection_container.dart';
 
@@ -102,17 +105,31 @@ class AppRouter {
           return const NotesPage(); 
         },
       ),
+      // CORREGIR: Envolver observations_page con BlocProvider
       GoRoute(
         path: '/observations', 
         name: 'observations', 
-        builder: (context, state) => const ObservationsPage()
+        builder: (context, state) {
+          return BlocProvider(
+            create: (context) => getIt<ObservationsBloc>(),
+            child: const ObservationsPage(),
+          );
+        }
       ),
 
       // Specialist routes
       ShellRoute(
         builder: (context, state, child) {
-          return BlocProvider(
-            create: (context) => getIt<SpecialistDashboardBloc>()..add(LoadDashboardData()),
+          return MultiBlocProvider(
+            providers: [
+              BlocProvider(
+                create: (context) => getIt<SpecialistDashboardBloc>()..add(LoadDashboardData()),
+              ),
+              // AÑADIR: Provider para ObservationsBloc en rutas del especialista
+              BlocProvider(
+                create: (context) => getIt<ObservationsBloc>(),
+              ),
+            ],
             child: child,
           );
         },
