@@ -62,6 +62,14 @@ import '../features/patients/domain/repositories/patient_repository.dart';
 import '../features/patients/domain/usecases/get_all_patients.dart';
 import '../features/patients/domain/usecases/get_patients_by_professional.dart';
 
+//Observations Imports
+import '../features/observations/data/datasources/observations_local_datasource.dart';
+import '../features/observations/data/repositories/observations_repository_impl.dart';
+import '../features/observations/domain/repositories/observations_repository.dart';
+import '../features/observations/domain/usecases/add_observation.dart';
+import '../features/observations/domain/usecases/get_observations_by_patient.dart';
+import '../features/observations/presentation/bloc/observations_bloc.dart';
+
 
 final getIt = GetIt.instance;
 
@@ -82,6 +90,7 @@ Future<void> init() async {
   _initStatistics();
   _initSpecialist();
   _initPatients();
+  _initObservations();
 }
 
 void _initAuth() {
@@ -192,4 +201,21 @@ void _initPatients() {
   // Repositories and DataSources
   getIt.registerLazySingleton<PatientRepository>(() => PatientRepositoryImpl(remoteDataSource: getIt()));
   getIt.registerLazySingleton<PatientRemoteDataSource>(() => PatientRemoteDataSourceImpl(apiClient: getIt()));
+}
+
+void _initObservations() {
+  // Blocs
+  getIt.registerFactory(() => ObservationsBloc(
+    getObservationsByPatient: getIt(),
+    addObservation: getIt(),
+    sessionCubit: getIt(),
+  ));
+  
+  // Use cases
+  getIt.registerLazySingleton(() => GetObservationsByPatient(getIt()));
+  getIt.registerLazySingleton(() => AddObservation(getIt()));
+  
+  // Repositories and DataSources
+  getIt.registerLazySingleton<ObservationsRepository>(() => ObservationsRepositoryImpl(localDataSource: getIt()));
+  getIt.registerLazySingleton<ObservationsLocalDataSource>(() => ObservationsLocalDataSourceImpl());
 }

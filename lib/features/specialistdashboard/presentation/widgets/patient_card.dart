@@ -7,6 +7,7 @@ import '../../../../core/presentation/theme.dart';
 import '../../../patients/domain/entities/patient_entity.dart';
 import '../pages/patient_notes_page.dart';
 import '../pages/patient_tasks_page.dart';
+import '../pages/patient_observations_page.dart';
 
 class PatientCard extends StatelessWidget {
   final PatientEntity patient;
@@ -299,140 +300,156 @@ class PatientCard extends StatelessWidget {
     return '';
   }
 
-  void _showPatientActions(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(24),
-            topRight: Radius.circular(24),
-          ),
+void _showPatientActions(BuildContext context) {
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: Colors.transparent,
+    isScrollControlled: true,
+    builder: (context) => Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Handle para cerrar
-            Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.only(top: 12),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
-              ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Handle para cerrar
+          Container(
+            width: 40,
+            height: 4,
+            margin: const EdgeInsets.only(top: 12),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(2),
             ),
-            
-            // Header del modal
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Row(
-                children: [
-                  Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      color: AppTheme.primaryColor.withAlpha((0.1 * 255).round()),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: Text(
-                        patient.name.isNotEmpty 
-                            ? patient.name.substring(0, 1).toUpperCase()
-                            : 'P',
-                        style: GoogleFonts.interTight(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.primaryColor,
-                        ),
+          ),
+          
+          // Header del modal
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: Row(
+              children: [
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withAlpha((0.1 * 255).round()),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      patient.name.isNotEmpty 
+                          ? patient.name.substring(0, 1).toUpperCase()
+                          : 'P',
+                      style: GoogleFonts.interTight(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primaryColor,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          patient.fullName,
-                          style: GoogleFonts.interTight(
-                            textStyle: Theme.of(context).textTheme.headlineSmall,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        patient.fullName,
+                        style: GoogleFonts.interTight(
+                          textStyle: Theme.of(context).textTheme.headlineSmall,
+                          fontWeight: FontWeight.bold,
                         ),
-                        Text(
-                          'Paciente',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppTheme.primaryText.withAlpha((0.6 * 255).round()),
-                          ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        'Paciente',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppTheme.primaryText.withAlpha((0.6 * 255).round()),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-            
-            // Opciones principales
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                children: [
-                  _ActionButton(
-                    icon: Icons.note_alt_outlined,
-                    title: 'Ver Notas',
-                    subtitle: 'Revisar las notas del paciente',
-                    color: Colors.blue,
-                    onTap: () {
-                      Navigator.of(context).pop();
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => PatientNotesPage(patient: patient),
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  _ActionButton(
-                    icon: Icons.task_alt_outlined,
-                    title: 'Ver Tareas',
-                    subtitle: 'Gestionar tareas asignadas',
-                    color: Colors.green,
-                    onTap: () {
-                      Navigator.of(context).pop();
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => PatientTasksPage(patient: patient),
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  _ActionButton(
-                    icon: Icons.info_outlined,
-                    title: 'Ver Detalles',
-                    subtitle: 'Información completa del paciente',
-                    color: AppTheme.primaryColor,
-                    onTap: () {
-                      Navigator.of(context).pop();
-                      _showPatientDetails(context);
-                    },
-                  ),
-                ],
-              ),
+          ),
+          
+          // Opciones principales
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              children: [
+                _ActionButton(
+                  icon: Icons.note_alt_outlined,
+                  title: 'Ver Notas',
+                  subtitle: 'Revisar las notas del paciente',
+                  color: Colors.blue,
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => PatientNotesPage(patient: patient),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+                _ActionButton(
+                  icon: Icons.task_alt_outlined,
+                  title: 'Ver Tareas',
+                  subtitle: 'Gestionar tareas asignadas',
+                  color: Colors.green,
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => PatientTasksPage(patient: patient),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+                // NUEVA OPCIÓN PARA OBSERVACIONES - USAR Navigator.push en lugar de context.pushNamed
+                _ActionButton(
+                  icon: Icons.visibility_outlined,
+                  title: 'Ver Observaciones',
+                  subtitle: 'Gestionar observaciones del paciente',
+                  color: Colors.purple,
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => PatientObservationsPage(patient: patient),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+                _ActionButton(
+                  icon: Icons.info_outlined,
+                  title: 'Ver Detalles',
+                  subtitle: 'Información completa del paciente',
+                  color: AppTheme.primaryColor,
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _showPatientDetails(context);
+                  },
+                ),
+              ],
             ),
-            
-            const SizedBox(height: 24),
-          ],
-        ),
+          ),
+          
+          const SizedBox(height: 24),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   void _showPatientDetails(BuildContext context) {
     final cleanEmail = _cleanEmailText(patient.email);

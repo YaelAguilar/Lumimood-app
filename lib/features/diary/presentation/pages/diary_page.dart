@@ -991,6 +991,15 @@ class _DiaryDrawer extends StatelessWidget {
                     context.pushNamed('notes');
                   },
                 ),
+                // NUEVO ITEM PARA OBSERVACIONES
+                _DrawerItem(
+                  icon: Icons.visibility_outlined,
+                  title: 'Observaciones',
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    context.pushNamed('observations');
+                  },
+                ),
                 const Divider(height: 32),
                 _DrawerItem(
                   icon: Icons.settings_outlined,

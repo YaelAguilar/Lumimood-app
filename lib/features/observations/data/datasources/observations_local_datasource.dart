@@ -1,7 +1,7 @@
 import 'dart:developer';
-import '../../../../core/error/exceptions.dart';
 import '../../domain/entities/observation.dart';
 
+/// Servicio de datos local para observaciones
 abstract class ObservationsLocalDataSource {
   Future<List<Observation>> getObservationsByPatient(String patientId);
   Future<List<Observation>> getObservationsByProfessional(String professionalId);
